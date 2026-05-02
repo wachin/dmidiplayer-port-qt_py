@@ -1,0 +1,344 @@
+"""Minimal Standard MIDI File reader used by the PyQt6 port.
+
+The original Drumstick file library supports SMF, RIFF MIDI, and Cakewalk WRK.
+This module starts with SMF because it unlocks dmidiplayer's main workflow and
+keeps the first Python version dependency-free on Debian 12.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+import struct
+
+
+class MidiFileError(ValueError):
+    """Raised when a MIDI file cannot be parsed."""
+
+
+@dataclass(slots=True)
+class MidiEvent:
+    tick: int
+    kind: str
+    channel: int | None = None
+    data: bytes = b""
+    meta_type: int | None = None
+
+    @property
+    def text(self) -> str:
+        for encoding in ("utf-8", "latin-1"):
+            try:
+                return self.data.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+        return self.data.decode("utf-8", errors="replace")
+
+    @property
+    def tempo_us_per_quarter(self) -> int | None:
+        if self.kind == "meta" and self.meta_type == 0x51 and len(self.data) == 3:
+            return int.from_bytes(self.data, "big")
+        return None
+
+
+@dataclass(frozen=True, slots=True)
+class TempoChange:
+    tick: int
+    microseconds_per_quarter: int
+
+
+@dataclass(frozen=True, slots=True)
+class TimeSignature:
+    tick: int
+    numerator: int
+    denominator: int
+    clocks_per_metronome: int
+    thirty_seconds_per_quarter: int
+
+
+@dataclass(frozen=True, slots=True)
+class KeySignature:
+    tick: int
+    sharps_flats: int
+    minor: bool
+
+
+@dataclass(frozen=True, slots=True)
+class TextEvent:
+    tick: int
+    meta_type: int
+    text: str
+
+
+@dataclass(slots=True)
+class MidiTrack:
+    events: list[MidiEvent] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class MidiFile:
+    path: Path
+    format: int
+    division: int
+    tracks: list[MidiTrack]
+
+    @property
+    def events(self) -> list[MidiEvent]:
+        return sorted((event for track in self.tracks for event in track.events), key=lambda e: e.tick)
+
+    @property
+    def length_ticks(self) -> int:
+        return max((event.tick for event in self.events), default=0)
+
+    @property
+    def tempo_changes(self) -> list[TempoChange]:
+        changes = [
+            TempoChange(event.tick, tempo)
+            for event in self.events
+            if (tempo := event.tempo_us_per_quarter) is not None
+        ]
+        if not changes or changes[0].tick > 0:
+            changes.insert(0, TempoChange(0, 500_000))
+        elif changes[0].tick == 0 and changes[0].microseconds_per_quarter != 500_000:
+            changes.insert(0, TempoChange(0, 500_000))
+        return _dedupe_tempo_changes(changes)
+
+    @property
+    def time_signatures(self) -> list[TimeSignature]:
+        signatures: list[TimeSignature] = []
+        for event in self.events:
+            if event.kind == "meta" and event.meta_type == 0x58 and len(event.data) >= 4:
+                signatures.append(
+                    TimeSignature(
+                        tick=event.tick,
+                        numerator=event.data[0],
+                        denominator=2 ** event.data[1],
+                        clocks_per_metronome=event.data[2],
+                        thirty_seconds_per_quarter=event.data[3],
+                    )
+                )
+        return signatures
+
+    @property
+    def key_signatures(self) -> list[KeySignature]:
+        signatures: list[KeySignature] = []
+        for event in self.events:
+            if event.kind == "meta" and event.meta_type == 0x59 and len(event.data) >= 2:
+                sf = event.data[0]
+                if sf >= 128:
+                    sf -= 256
+                signatures.append(KeySignature(tick=event.tick, sharps_flats=sf, minor=bool(event.data[1])))
+        return signatures
+
+    @property
+    def text_events(self) -> list[TextEvent]:
+        return [
+            TextEvent(event.tick, event.meta_type, event.text)
+            for event in self.events
+            if event.kind == "meta" and event.meta_type in (0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07)
+        ]
+
+    @property
+    def length_microseconds(self) -> int:
+        return self.tick_to_microseconds(self.length_ticks)
+
+    @property
+    def title(self) -> str:
+        for event in self.events:
+            if event.kind == "meta" and event.meta_type in (0x03, 0x01) and event.text.strip():
+                return event.text.strip()
+        return self.path.name
+
+    def tick_to_microseconds(self, tick: int) -> int:
+        if tick <= 0:
+            return 0
+        if self.division & 0x8000:
+            return _smpte_tick_to_microseconds(self.division, tick)
+
+        ticks_per_quarter = self.division
+        if ticks_per_quarter <= 0:
+            raise MidiFileError("Invalid MIDI division")
+
+        elapsed = 0
+        previous_tick = 0
+        previous_tempo = 500_000
+        for change in self.tempo_changes:
+            if change.tick <= 0:
+                previous_tempo = change.microseconds_per_quarter
+                continue
+            if change.tick >= tick:
+                break
+            elapsed += ((change.tick - previous_tick) * previous_tempo) // ticks_per_quarter
+            previous_tick = change.tick
+            previous_tempo = change.microseconds_per_quarter
+        elapsed += ((tick - previous_tick) * previous_tempo) // ticks_per_quarter
+        return elapsed
+
+    def event_microseconds(self, event: MidiEvent) -> int:
+        return self.tick_to_microseconds(event.tick)
+
+    def microseconds_to_tick(self, microseconds: int) -> int:
+        if microseconds <= 0:
+            return 0
+        if self.division & 0x8000:
+            return _smpte_microseconds_to_tick(self.division, microseconds)
+
+        ticks_per_quarter = self.division
+        if ticks_per_quarter <= 0:
+            raise MidiFileError("Invalid MIDI division")
+
+        elapsed = 0
+        previous_tick = 0
+        previous_tempo = 500_000
+        changes = [change for change in self.tempo_changes if change.tick > 0]
+        for change in changes:
+            segment_us = ((change.tick - previous_tick) * previous_tempo) // ticks_per_quarter
+            if elapsed + segment_us >= microseconds:
+                remaining = microseconds - elapsed
+                return previous_tick + (remaining * ticks_per_quarter) // previous_tempo
+            elapsed += segment_us
+            previous_tick = change.tick
+            previous_tempo = change.microseconds_per_quarter
+        remaining = microseconds - elapsed
+        return previous_tick + (remaining * ticks_per_quarter) // previous_tempo
+
+
+class _Reader:
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+        self._pos = 0
+
+    def read(self, size: int) -> bytes:
+        if self._pos + size > len(self._data):
+            raise MidiFileError("Unexpected end of file")
+        out = self._data[self._pos : self._pos + size]
+        self._pos += size
+        return out
+
+    def read_u16(self) -> int:
+        return struct.unpack(">H", self.read(2))[0]
+
+    def read_u32(self) -> int:
+        return struct.unpack(">I", self.read(4))[0]
+
+    def read_varlen(self) -> int:
+        value = 0
+        for _ in range(4):
+            byte = self.read(1)[0]
+            value = (value << 7) | (byte & 0x7F)
+            if not byte & 0x80:
+                return value
+        raise MidiFileError("Invalid variable-length quantity")
+
+    @property
+    def remaining(self) -> int:
+        return len(self._data) - self._pos
+
+
+def read_smf(file_name: str | Path) -> MidiFile:
+    path = Path(file_name)
+    reader = _Reader(path.read_bytes())
+    if reader.read(4) != b"MThd":
+        raise MidiFileError("Not a Standard MIDI File")
+    header_size = reader.read_u32()
+    if header_size < 6:
+        raise MidiFileError("Invalid MIDI header")
+    midi_format = reader.read_u16()
+    track_count = reader.read_u16()
+    division = reader.read_u16()
+    if header_size > 6:
+        reader.read(header_size - 6)
+
+    tracks: list[MidiTrack] = []
+    for _ in range(track_count):
+        if reader.read(4) != b"MTrk":
+            raise MidiFileError("Missing MIDI track chunk")
+        track_size = reader.read_u32()
+        tracks.append(_read_track(reader.read(track_size)))
+    return MidiFile(path=path, format=midi_format, division=division, tracks=tracks)
+
+
+def _read_track(data: bytes) -> MidiTrack:
+    reader = _Reader(data)
+    tick = 0
+    running_status: int | None = None
+    events: list[MidiEvent] = []
+
+    while reader.remaining:
+        tick += reader.read_varlen()
+        status = reader.read(1)[0]
+        if status < 0x80:
+            if running_status is None:
+                raise MidiFileError("Running status used before status byte")
+            reader._pos -= 1
+            status = running_status
+        elif status < 0xF0:
+            running_status = status
+
+        if status == 0xFF:
+            meta_type = reader.read(1)[0]
+            payload = reader.read(reader.read_varlen())
+            events.append(MidiEvent(tick=tick, kind="meta", data=payload, meta_type=meta_type))
+            if meta_type == 0x2F:
+                break
+            continue
+
+        if status in (0xF0, 0xF7):
+            events.append(MidiEvent(tick=tick, kind="sysex", data=reader.read(reader.read_varlen())))
+            continue
+
+        event_type = status & 0xF0
+        channel = status & 0x0F
+        size = 1 if event_type in (0xC0, 0xD0) else 2
+        payload = reader.read(size)
+        events.append(MidiEvent(tick=tick, kind=_channel_kind(event_type), channel=channel, data=payload))
+
+    return MidiTrack(events=events)
+
+
+def _channel_kind(event_type: int) -> str:
+    return {
+        0x80: "note_off",
+        0x90: "note_on",
+        0xA0: "key_pressure",
+        0xB0: "control_change",
+        0xC0: "program_change",
+        0xD0: "channel_pressure",
+        0xE0: "pitch_bend",
+    }.get(event_type, "channel")
+
+
+def _dedupe_tempo_changes(changes: list[TempoChange]) -> list[TempoChange]:
+    ordered = sorted(changes, key=lambda change: change.tick)
+    result: list[TempoChange] = []
+    for change in ordered:
+        if result and result[-1].tick == change.tick:
+            result[-1] = change
+        else:
+            result.append(change)
+    return result
+
+
+def _smpte_tick_to_microseconds(division: int, tick: int) -> int:
+    fps_byte = (division >> 8) & 0xFF
+    ticks_per_frame = division & 0xFF
+    if fps_byte >= 0x80:
+        fps_byte -= 0x100
+    frames_per_second = -fps_byte
+    if frames_per_second == 29:
+        frames_per_second = 29.97
+    if frames_per_second <= 0 or ticks_per_frame <= 0:
+        raise MidiFileError("Invalid SMPTE MIDI division")
+    return int((tick * 1_000_000) / (frames_per_second * ticks_per_frame))
+
+
+def _smpte_microseconds_to_tick(division: int, microseconds: int) -> int:
+    fps_byte = (division >> 8) & 0xFF
+    ticks_per_frame = division & 0xFF
+    if fps_byte >= 0x80:
+        fps_byte -= 0x100
+    frames_per_second = -fps_byte
+    if frames_per_second == 29:
+        frames_per_second = 29.97
+    if frames_per_second <= 0 or ticks_per_frame <= 0:
+        raise MidiFileError("Invalid SMPTE MIDI division")
+    return int((microseconds * frames_per_second * ticks_per_frame) / 1_000_000)

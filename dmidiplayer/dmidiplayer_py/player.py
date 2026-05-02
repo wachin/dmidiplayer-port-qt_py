@@ -1,0 +1,105 @@
+"""Realtime sequence player for the first Python port."""
+
+from __future__ import annotations
+
+from PyQt6.QtCore import QElapsedTimer, QObject, Qt, QTimer, pyqtSignal
+
+from drumstick_py import MidiEvent, MidiOutputError
+from .sequence import Sequence
+
+
+class SequencePlayer(QObject):
+    started = pyqtSignal()
+    stopped = pyqtSignal()
+    finished = pyqtSignal()
+    positionChanged = pyqtSignal(int, int)
+    eventPlayed = pyqtSignal(object)
+    outputError = pyqtSignal(str)
+
+    def __init__(self, output: object, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self.sequence = Sequence(self)
+        self.output = output
+        self._timer = QTimer(self)
+        self._timer.setTimerType(Qt.TimerType.PreciseTimer)
+        self._timer.timeout.connect(self._tick)
+        self._events: list[MidiEvent] = []
+        self._event_times_us: list[int] = []
+        self._index = 0
+        self._position = 0
+        self._position_us = 0
+        self._base_position_us = 0
+        self._clock = QElapsedTimer()
+
+    def load_file(self, file_name: str) -> None:
+        self.stop()
+        self.sequence.load_file(file_name)
+        self._events = self.sequence.events
+        midi = self.sequence.midi
+        self._event_times_us = [] if midi is None else [midi.event_microseconds(event) for event in self._events]
+        self._index = 0
+        self._position = 0
+        self._position_us = 0
+        self._base_position_us = 0
+        self.positionChanged.emit(self._position, self.sequence.length_ticks)
+
+    def play(self) -> None:
+        if not self._events:
+            return
+        if self._index >= len(self._events):
+            self._index = 0
+            self._position = 0
+            self._position_us = 0
+        self._base_position_us = self._position_us
+        self._clock.start()
+        self._timer.start(2)
+        self.started.emit()
+        self._tick()
+
+    def pause(self) -> None:
+        self._position_us = self._elapsed_microseconds()
+        self._timer.stop()
+        self.stopped.emit()
+
+    def stop(self) -> None:
+        self._timer.stop()
+        self.output.all_notes_off()
+        self._index = 0
+        self._position = 0
+        self._position_us = 0
+        self._base_position_us = 0
+        self.positionChanged.emit(self._position, self.sequence.length_ticks)
+        self.stopped.emit()
+
+    def _tick(self) -> None:
+        self._position_us = self._elapsed_microseconds()
+        while self._index < len(self._events) and self._event_times_us[self._index] <= self._position_us:
+            event = self._events[self._index]
+            try:
+                self.output.send_event(event)
+            except MidiOutputError as exc:
+                self._timer.stop()
+                self.output.all_notes_off()
+                self.outputError.emit(str(exc))
+                self.stopped.emit()
+                return
+            self.eventPlayed.emit(event)
+            self._position = event.tick
+            self._index += 1
+        self._position = min(
+            self.sequence.microseconds_to_tick(self._position_us),
+            self.sequence.length_ticks,
+        )
+        self.positionChanged.emit(self._position, self.sequence.length_ticks)
+        if self._index >= len(self._events):
+            self._timer.stop()
+            self._position = self.sequence.length_ticks
+            self._position_us = self.sequence.length_microseconds
+            self._base_position_us = self._position_us
+            self.positionChanged.emit(self._position, self.sequence.length_ticks)
+            self.finished.emit()
+
+    def _elapsed_microseconds(self) -> int:
+        if not self._clock.isValid():
+            return self._position_us
+        return self._base_position_us + self._clock.nsecsElapsed() // 1000

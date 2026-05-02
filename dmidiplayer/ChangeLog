@@ -1,0 +1,361 @@
+2024-12-30
+    * Release 1.7.5
+
+2024-12-23
+    * Fix for GH ticket #32: text highlight color setting
+
+2024-12-21
+    * Preparations for release 1.7.5
+        building with msvc 2022 on Windows
+        using Drumstick 2.10
+
+2024-12-14
+    * BackendManager fixed
+
+2024-08-31
+    * Release 1.7.4
+
+2024-08-25
+    * Fix for GH ticket #25
+    * better sequence info dialog
+
+2024-08-23
+    * Fix for GH ticket #20
+
+2024-08-20
+    * Fix for GH ticket #22
+
+2024-03-30
+    * GH actions - workflows
+
+2023-12-06
+    * Preparations for release 1.7.4
+        Building with Qt6 by default.
+        For Qt5 compatibility, a new option USE_QT5 must be set.
+        Upgraded CMake requirement to 3.16
+
+2023-11-01
+    * using std::call_once for settings read
+
+2023-10-12
+    * Release 1.7.3
+
+2023-10-08
+    * Czech translation updated. Thanks to Pavel Fric.
+
+2023-10-07
+    * Italian translation updated. Thanks to Giovanni Mariani.
+    * Spanish and Galician translations updated.
+
+2023-09-26
+    * fix for GH ticket #13 (SF ticket #18): Snapped Windows should move together.
+
+2023-08-21
+    * new example:  Franz Schubert (1797–1828). Der Schwanengesang (D 957).  4.-Ständchen (Ludwig Rellstab 1799-1860).
+
+2023-07-08
+    * Release 1.7.2
+
+2023-07-02
+    * Fixed GH ticket #9: Retain Locked Patches when replaying Midi File
+    * Fixed SF ticket #17: Removed splash screen
+
+2023-04-23
+    * Fixed crash when loading a song from File->Open Recent Files (GH ticket #8).
+
+2023-03-01
+    * Fixed default language setting (GH ticket #7).
+
+2023-01-07
+    * Copyright years updated
+
+2022-12-10
+    * Upgraded uchardet v0.0.8
+
+2022-12-06
+    * Release 1.7.1
+
+2022-11-06
+    * Fixed splash
+    * Don't show splash in wayland
+
+2022-08-31
+    * Exclude scaling for wayland
+    * Use the same font for the splash screen on all platforms
+
+2022-08-30
+    * Italian translation updated. Thanks to Giovanni Mariani.
+    * Splash screen scaled (by logicalDPI / physicalDPI).
+
+2022-08-07
+    * Release 1.7.0
+
+2022-08-04
+    * Czech program translation updated. Thanks to Pavel Fric
+    * Help window fixed and simplified
+
+2022-08-03
+    * Italian translation updated. Thanks to Giovanni Mariani.
+    * Spanish and Galician translations updated.
+
+2022-08-01
+    * New configuration option: octave subscript designation.
+    * Program and help text updated.
+
+2022-06-13
+    * ticket #14: Search MIDI files online, using vanbasco.com search engine
+
+2022-06-05
+    * implementation of ticket #12: Persistent song configuration
+
+2022-06-04
+    * Removed temporary splash
+
+2022-05-24
+    * Italian translation updated. Thanks to Giovanni Mariani
+
+2022-05-22
+    * configurable solo button volume reduction
+    * tooltips revision
+    * wrench icon
+
+2022-05-18
+    * implementation of ticket #13: MIDI channel volumes
+
+2022-05-15
+    * Release 1.6.0
+
+2022-05-14
+    * Czech translation updated. Thanks to Pavel Fric
+
+2022-05-13
+    * New Galician translation and help page.
+    * New sample song: Negra Sombra.
+    * New Splash screen shown during May for Galician language users
+      Using this file: https://commons.wikimedia.org/wiki/File:Bandeira_de_Galicia_no_Pazo_de_Raxoi.jpg
+      Author: Contando Estrelas from Vigo, España / Spain
+      License: CC-BY-SA-2.0 Generic.
+    * Frameless tool windows (channels, player piano, lyrics, help).
+
+2022-04-30
+    * Bumped required drumstick version to 2.6
+    * Better compatibility with Qt6
+
+2022-04-22
+    * Using QGuiApplication::setDesktopFileName to fix the wrong icon in KDE+Wayland
+
+2022-02-05
+    * Load translations earlier, for command line options
+
+2022-01-27
+    * Avoid loading translations for English
+
+2022-01-15
+    * AppStream MetaInfo renamed.
+
+
+2021-12-22
+    * Release 1.5.3
+
+2021-12-18
+    * replaced deprecated signalSMFText() by signalSMFText2()
+    * added support for Cakewalk (WRK) format markers
+
+2021-12-03
+    * bumped required drumstick version to 2.5
+
+2021-11-29
+    * Added an Info.plist cmake template to enable HighDPI rendering on macOS
+
+2021-10-24
+    * Czech translation updated. Thanks to Pavel Fric
+    * Release 1.5.2
+
+2021-10-23
+    * New build option USE_QT to choose which Qt major version (5 or 6) to prefer. By default (if not set) it uses whatever is found.
+
+2021-10-20
+    * Fix for crash in Linux when changing MIDI output connection, and there are not suitable MIDI ports available.
+
+2021-09-19
+    * Release 1.5.1
+
+2021-09-15
+    * Support for RIFF MIDI files, provided by Drumstick 2.4.0
+
+2021-09-01
+    * Fixed error checking of DwmGetWindowAttribute() call. This caused a problem in Windows 7 running the "Windows Classic" theme.
+
+2021-08-25
+    * fix for GH ticket #6: The dependency target "update_helpfiles" of target "dmidiplayer" does not exist
+
+2021-08-22
+    * Release 1.5.0
+
+2021-08-16
+    * Italian help document translation, thanks to Giovanni Mariani
+    * Machine translations for German and French help documents
+    * Initialized de, fr and it program translations from phrasebooks
+
+2021-08-15
+    * Czech translation updated, thanks to Pavel Fric
+
+2021-08-12
+    * implementation of ticket #7: Help window and user documentation
+
+2021-08-07
+    * fix for ticket #11: winsnap enable/disable
+
+2021-08-05
+    * implementation for ticket #3: song loop between bars
+
+2021-07-05
+    * allow more than one file from the command line, or dragged from a file manager.
+
+2021-07-04
+    * implemented ticket #10: splash screen
+    * bumped version number to 1.5.0
+
+2021-06-29
+    * Release 1.4.0
+
+2021-06-28
+    * New CMake build option: EMBED_TRANSLATIONS
+
+2021-06-27
+    * Czech translation updated, thanks to Pavel Fric
+
+2021-06-16
+    * missing internal icons added
+    * implemented playlist function shuffle
+    * implemented ticket #2: Playlist repetition
+
+2021-06-15
+    * Implemented ticket #9: (drumstick ticket #31) fallback output drivers
+    * preliminary support for building with Qt6 (experimental)
+    * Bump version number to 1.4.0
+
+2021-06-13
+    * Implemented ticket #8 Lyrics text: copy to clipboard, save to file, print
+
+2021-06-05
+    * New positioning actions: forward, backward, jump to bar
+    * New dialog: ToolBarEditor, to customize the toolbar buttons
+
+2021-06-04
+    * Implemented ticket #1: Playback Positioning
+
+2021-06-01
+    * Release v1.3.1
+
+2021-05-29
+    * Display diagnostics after midi out driver initialization
+
+2021-05-28
+    * Fix for ticket #6: added man page
+    * Warn when modified playlist is not saved
+
+2021-05-26
+    * Fix for ticket #4: crash if user closes the main window while playing a MIDI file
+
+2021-05-11
+    * Release v1.3.0
+
+2021-05-07
+    * Czech translation. Thanks to Pavel Fric
+
+2021-04-28
+    * Fixed warnings when building with Qt >= 5.15
+    * Better mac integration
+
+2021-04-27
+    * Full screen option for Lyrics and Piano Player windows
+
+2021-04-25
+    * Standarization: MIDI texts/lyrics encoding defaults to Latin1
+
+2021-04-23
+    * internal icons reorganization
+    * New option: Qt widgets style
+
+2021-04-21
+    * better support for WRK files with lyrics and other metadata
+    * Auto advance to the next song only when auto play is enabled
+
+2021-04-20
+    * icons reorganization: moved from resources/ to icons/
+    * allow desktop environment icon theme, with option to force internal icon theme
+
+2021-04-18
+    * icons: now using breeze icon theme
+
+2021-04-17
+    * autogenerated initial playlist
+    * playlists files may be relative to the playlist directory
+
+2021-04-16
+    * store last saved playlist
+    * dark mode revision
+
+2021-04-15
+    * playlist: previous/next song navigation
+    * events: reorganization, KeySignature
+    * examples: added playlist
+    * guiplayer: playlist navigation UI buttons, alternative icons
+    * new setting: default playlist
+
+2021-04-13
+    * Updated MIDI and Karaoke examples
+
+2021-04-08
+    * preferences dialog
+    * implemented AutoPlay option
+    * spanish translation
+
+2021-04-05
+    * playlist editor
+
+2021-04-04
+    * Spanish translation updates by Darío Hereñú
+        * Minor fix (lines 100, 159)
+        * minor proposal on line 115
+        * Transporte o tono? (line 198)
+
+2021-04-02
+    * Desktop and AppStream metadata updated
+
+2021-04-01
+    * updated CMake buildsystem
+        * minimum required cmake version 3.14
+        * macOS target Sierra (10.12)
+        * uninstall target
+    * updated .desktop and appstream metadata
+
+2021-03-31 Release v1.2.0:
+    * spanish translation updated
+    * moved cmake scripts to a sub directory
+    * added SCN Revision module to include the revision id in the about box
+
+2021-03-27
+    * new dependency: uchardet library, for charset detection
+      (see https://www.freedesktop.org/wiki/Software/uchardet/)
+    * Lyrics and other metadata processing
+    * FileInfo dialog displaying Karaoke metadata
+    * Implemented Lyrics view.
+
+2021-03-20 Release v1.1.0:
+
+    * Pianola, Channels and Rhythm views
+    * Sticky Window Snapping (for Windows OS only)
+    * Russian translation (Thanks to Sergey Basalaev)
+    * Spanish translation updated
+    * Recent files menu options
+    * Language choice menu options
+    * Command line options: --portable and --file (for portable configuration)
+
+2021-02-02 Release v1.0.0:
+
+    * MIDI Output to hardware MIDI ports, or any other Drumstick backend
+    * Transpose song tonality between -12 and +12 semitones
+    * Change MIDI volume level (using MIDI CC7)
+    * Scale song speed between half and double tempo

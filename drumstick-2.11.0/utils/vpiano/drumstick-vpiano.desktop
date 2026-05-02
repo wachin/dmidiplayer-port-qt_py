@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Drumstick Virtual Piano
+Exec=drumstick-vpiano
+Icon=drumstick
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Midi;Education;Music;
+Keywords=Music;Midi;Piano;Virtual;
+Comment=Virtual Piano
+Comment[es]=Piano virtual
