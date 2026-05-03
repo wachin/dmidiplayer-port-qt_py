@@ -152,18 +152,19 @@ archivo entre 0% y 200%.
 
 ## Configuracion
 
-La aplicacion guarda su configuracion en la ubicacion AppData indicada por Qt
-(`QStandardPaths.AppDataLocation`).
+La aplicacion guarda su configuracion en la ubicacion de configuracion indicada
+por Qt (`QStandardPaths.AppConfigLocation`).
 
 En Linux normalmente sera una ruta equivalente a:
 
 ```text
-~/.local/share/dmidiplayer/dmidiplayer-py/settings.ini
+~/.config/dmidiplayer/dmidiplayer-py/settings.ini
 ```
 
-En Windows corresponde a la carpeta AppData del usuario. Actualmente se guarda
-la ultima carpeta visitada por el dialogo `Open MIDI`, para que la siguiente vez
-el selector de archivos abra directamente en esa ubicacion.
+En Windows corresponde a la carpeta AppData del usuario, normalmente bajo
+`%AppData%` o la ubicacion equivalente que Qt seleccione. Actualmente se guarda
+la ultima carpeta visitada por el dialogo `Open MIDI`, para que la siguiente
+vez el selector de archivos abra directamente en esa ubicacion.
 
 ## Verificacion rapida
 

@@ -10,7 +10,7 @@ from PyQt6.QtCore import QSettings, QStandardPaths
 
 class AppSettings:
     def __init__(self, base_dir: Path | None = None) -> None:
-        self.base_dir = base_dir or app_data_dir()
+        self.base_dir = base_dir or app_config_dir()
         try:
             self.base_dir.mkdir(parents=True, exist_ok=True)
         except OSError:
@@ -31,11 +31,11 @@ class AppSettings:
             self._settings.sync()
 
 
-def app_data_dir() -> Path:
-    location = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation)
+def app_config_dir() -> Path:
+    location = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppConfigLocation)
     if location:
         return Path(location)
-    return Path.home() / ".local" / "share" / "dmidiplayer-py"
+    return Path.home() / ".config" / "dmidiplayer" / "dmidiplayer-py"
 
 
 def fallback_config_dir() -> Path:

@@ -306,8 +306,8 @@ cada proyecto, sin borrar ni sustituir el C++ original.
   - `app.py`: ventana PyQt6 inicial con lista, controles, posicion, teclado y
     selector de destino MIDI ALSA.
   - `i18n.py`: carga de traducciones Qt `.qm` con ingles como idioma fuente.
-  - `settings.py`: configuracion persistente en AppData mediante
-    `QStandardPaths.AppDataLocation` y `QSettings`.
+  - `settings.py`: configuracion persistente mediante
+    `QStandardPaths.AppConfigLocation` y `QSettings`.
   - `sequence.py`: modelo que carga SMF desde `drumstick_py`.
   - `player.py`: reproductor temporizado con `QTimer` y reloj real basado en
     mapa de tempo.
@@ -346,8 +346,9 @@ Estado funcional:
   - limita valores al rango MIDI 0-127.
 - La UI usa cadenas fuente en ingles y puede cargar traducciones Qt Linguist
   compiladas desde `dmidiplayer/dmidiplayer_py/translations`.
-- La aplicacion guarda configuracion en AppData y recuerda la ultima carpeta
-  visitada por el dialogo `Open MIDI`.
+- La aplicacion guarda configuracion en `.config` en Linux y AppData/equivalente
+  en Windows mediante Qt; recuerda la ultima carpeta visitada por el dialogo
+  `Open MIDI`.
 - La app intenta abrir ALSA sequencer primero.
 - Si ALSA sequencer falla, la app cae a salida dummy y sigue abriendo la UI.
 - `python3-alsaaudio` se usa solo como diagnostico de tarjetas/PCM. No sirve
@@ -917,10 +918,12 @@ Tareas:
 
 `dmidiplayer_py.settings`:
 
-- Usa `QStandardPaths.AppDataLocation` para ubicar AppData de forma portable.
+- Usa `QStandardPaths.AppConfigLocation` para ubicar configuracion de forma
+  portable: `.config` en Linux y AppData/equivalente en Windows.
 - Guarda `settings.ini` con `QSettings`.
-- Si AppData no se puede crear/escribir, cae a un directorio temporal para no
-  impedir que la aplicacion arranque en entornos restringidos.
+- Si la carpeta de configuracion no se puede crear/escribir, cae a un
+  directorio temporal para no impedir que la aplicacion arranque en entornos
+  restringidos.
 - Persiste `files/last_folder`.
 - Si la ruta guardada ya no existe, vuelve a una carpeta fallback.
 
