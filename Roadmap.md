@@ -13,7 +13,7 @@ Antes de tocar codigo, leer especialmente las secciones:
 Este repositorio contiene dos proyectos C++/Qt que deben convivir durante la
 conversion:
 
-- `drumstick-2.11.0`: biblioteca MIDI para Qt. En Python queda como paquete
+- `drumstick`: biblioteca MIDI para Qt. En Python queda como paquete
   `drumstick_py` dentro de la misma carpeta.
 - `dmidiplayer`: reproductor que depende de Drumstick. En Python queda como
   paquete `dmidiplayer_py` dentro de la misma carpeta.
@@ -27,7 +27,7 @@ como referencia hasta que cada modulo tenga paridad funcional y pruebas.
 Ya se creo una base Python ejecutable y se mantiene dentro de las carpetas de
 cada proyecto, sin borrar ni sustituir el C++ original.
 
-- `drumstick-2.11.0/drumstick_py/`
+- `drumstick/drumstick_py/`
   - `file.py`: lector SMF inicial, sin dependencias externas, con mapa de
     tempo, duracion real y metadatos basicos.
   - `rt.py`: `BackendManager`, salida dummy, diagnostico con
@@ -108,8 +108,8 @@ Desde la raiz del repo:
 
 ```bash
 ./dmidiplayer/dmidiplayer-py --help
-PYTHONPATH=drumstick-2.11.0:dmidiplayer python3 -m compileall drumstick-2.11.0/drumstick_py dmidiplayer/dmidiplayer_py
-PYTHONPATH=drumstick-2.11.0:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event
+PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player
 QT_QPA_PLATFORM=offscreen timeout 2s ./dmidiplayer/dmidiplayer-py
 ```
 
@@ -236,7 +236,7 @@ Estado: iniciada y usable como esqueleto.
 
 - Mantener el C++ original sin borrar archivos.
 - Usar paquetes Python paralelos:
-  - `drumstick-2.11.0/drumstick_py`
+  - `drumstick/drumstick_py`
   - `dmidiplayer/dmidiplayer_py`
 - Mantener nombres de clases cercanos a los originales cuando ayude:
   - `BackendManager`
@@ -495,8 +495,9 @@ Pruebas minimas:
 Comandos esperados:
 
 ```bash
-PYTHONPATH=drumstick-2.11.0:dmidiplayer python3 -m compileall drumstick-2.11.0/drumstick_py dmidiplayer/dmidiplayer_py
-PYTHONPATH=drumstick-2.11.0:dmidiplayer python3 -m dmidiplayer_py --help
+PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py
+PYTHONPATH=drumstick:dmidiplayer python3 -m dmidiplayer_py --help
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player
 ```
 
 ## Fase 10: empaquetado local
@@ -525,10 +526,10 @@ Tareas:
 
 ## Archivos Python creados hasta ahora
 
-- `drumstick-2.11.0/drumstick_py/__init__.py`
-- `drumstick-2.11.0/drumstick_py/file.py`
-- `drumstick-2.11.0/drumstick_py/rt.py`
-- `drumstick-2.11.0/drumstick_py/widgets.py`
+- `drumstick/drumstick_py/__init__.py`
+- `drumstick/drumstick_py/file.py`
+- `drumstick/drumstick_py/rt.py`
+- `drumstick/drumstick_py/widgets.py`
 - `dmidiplayer/dmidiplayer_py/__init__.py`
 - `dmidiplayer/dmidiplayer_py/__main__.py`
 - `dmidiplayer/dmidiplayer_py/app.py`

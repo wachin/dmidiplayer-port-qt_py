@@ -4,7 +4,7 @@ Este repositorio contiene una conversion progresiva de Drumstick/dmidiplayer a
 Qt/Python con PyQt6. El codigo C++ original se conserva como referencia y la
 version Python vive en paquetes paralelos dentro del mismo arbol:
 
-- `drumstick-2.11.0/drumstick_py`
+- `drumstick/drumstick_py`
 - `dmidiplayer/dmidiplayer_py`
 
 ## Entorno de pruebas actual
@@ -102,6 +102,6 @@ MIDI`, pulsa `Refrescar` y luego `Conectar`.
 
 ```bash
 ./dmidiplayer/dmidiplayer-py --help
-PYTHONPATH=drumstick-2.11.0:dmidiplayer python3 -m compileall drumstick-2.11.0/drumstick_py dmidiplayer/dmidiplayer_py tests
-PYTHONPATH=drumstick-2.11.0:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player
+PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py tests
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player
 ```

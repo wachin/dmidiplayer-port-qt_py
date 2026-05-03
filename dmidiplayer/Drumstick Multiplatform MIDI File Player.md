@@ -1,9 +1,8 @@
-# [dmidiplayer](index.shtml)
+# [dmidiplayer]([https://dmidiplayer.sourceforge.io/index.shtml](https://dmidiplayer.sourceforge.io/index.shtml))
 
 Drumstick Multiplatform MIDI File Player
 
-* [Home](index.shtml)
-* [Documentation](manual.shtml)
+[https://dmidiplayer.sourceforge.io/manual.shtml](https://dmidiplayer.sourceforge.io/manual.shtml)
 
 ## Introduction
 
