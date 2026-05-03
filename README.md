@@ -150,10 +150,25 @@ percusion GM 10. `Tempo` permite reproducir entre 50% y 200% de la velocidad
 original. `Volume` envia MIDI CC7 a los canales y escala cambios CC7 del
 archivo entre 0% y 200%.
 
+## Configuracion
+
+La aplicacion guarda su configuracion en la ubicacion AppData indicada por Qt
+(`QStandardPaths.AppDataLocation`).
+
+En Linux normalmente sera una ruta equivalente a:
+
+```text
+~/.local/share/dmidiplayer/dmidiplayer-py/settings.ini
+```
+
+En Windows corresponde a la carpeta AppData del usuario. Actualmente se guarda
+la ultima carpeta visitada por el dialogo `Open MIDI`, para que la siguiente vez
+el selector de archivos abra directamente en esa ubicacion.
+
 ## Verificacion rapida
 
 ```bash
 ./dmidiplayer/dmidiplayer-py --help
 PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py tests
-PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n tests.test_settings
 ```

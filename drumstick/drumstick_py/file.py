@@ -80,17 +80,31 @@ class MidiFile:
     format: int
     division: int
     tracks: list[MidiTrack]
+    _events_cache: list[MidiEvent] | None = field(default=None, init=False, repr=False)
+    _length_ticks_cache: int | None = field(default=None, init=False, repr=False)
+    _tempo_changes_cache: list[TempoChange] | None = field(default=None, init=False, repr=False)
+    _time_signatures_cache: list[TimeSignature] | None = field(default=None, init=False, repr=False)
+    _key_signatures_cache: list[KeySignature] | None = field(default=None, init=False, repr=False)
+    _text_events_cache: list[TextEvent] | None = field(default=None, init=False, repr=False)
+    _length_microseconds_cache: int | None = field(default=None, init=False, repr=False)
+    _title_cache: str | None = field(default=None, init=False, repr=False)
 
     @property
     def events(self) -> list[MidiEvent]:
-        return sorted((event for track in self.tracks for event in track.events), key=lambda e: e.tick)
+        if self._events_cache is None:
+            self._events_cache = sorted((event for track in self.tracks for event in track.events), key=lambda e: e.tick)
+        return self._events_cache
 
     @property
     def length_ticks(self) -> int:
-        return max((event.tick for event in self.events), default=0)
+        if self._length_ticks_cache is None:
+            self._length_ticks_cache = max((event.tick for event in self.events), default=0)
+        return self._length_ticks_cache
 
     @property
     def tempo_changes(self) -> list[TempoChange]:
+        if self._tempo_changes_cache is not None:
+            return self._tempo_changes_cache
         changes = [
             TempoChange(event.tick, tempo)
             for event in self.events
@@ -100,10 +114,13 @@ class MidiFile:
             changes.insert(0, TempoChange(0, 500_000))
         elif changes[0].tick == 0 and changes[0].microseconds_per_quarter != 500_000:
             changes.insert(0, TempoChange(0, 500_000))
-        return _dedupe_tempo_changes(changes)
+        self._tempo_changes_cache = _dedupe_tempo_changes(changes)
+        return self._tempo_changes_cache
 
     @property
     def time_signatures(self) -> list[TimeSignature]:
+        if self._time_signatures_cache is not None:
+            return self._time_signatures_cache
         signatures: list[TimeSignature] = []
         for event in self.events:
             if event.kind == "meta" and event.meta_type == 0x58 and len(event.data) >= 4:
@@ -116,10 +133,13 @@ class MidiFile:
                         thirty_seconds_per_quarter=event.data[3],
                     )
                 )
-        return signatures
+        self._time_signatures_cache = signatures
+        return self._time_signatures_cache
 
     @property
     def key_signatures(self) -> list[KeySignature]:
+        if self._key_signatures_cache is not None:
+            return self._key_signatures_cache
         signatures: list[KeySignature] = []
         for event in self.events:
             if event.kind == "meta" and event.meta_type == 0x59 and len(event.data) >= 2:
@@ -127,26 +147,35 @@ class MidiFile:
                 if sf >= 128:
                     sf -= 256
                 signatures.append(KeySignature(tick=event.tick, sharps_flats=sf, minor=bool(event.data[1])))
-        return signatures
+        self._key_signatures_cache = signatures
+        return self._key_signatures_cache
 
     @property
     def text_events(self) -> list[TextEvent]:
-        return [
-            TextEvent(event.tick, event.meta_type, event.text)
-            for event in self.events
-            if event.kind == "meta" and event.meta_type in (0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07)
-        ]
+        if self._text_events_cache is None:
+            self._text_events_cache = [
+                TextEvent(event.tick, event.meta_type, event.text)
+                for event in self.events
+                if event.kind == "meta" and event.meta_type in (0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07)
+            ]
+        return self._text_events_cache
 
     @property
     def length_microseconds(self) -> int:
-        return self.tick_to_microseconds(self.length_ticks)
+        if self._length_microseconds_cache is None:
+            self._length_microseconds_cache = self.tick_to_microseconds(self.length_ticks)
+        return self._length_microseconds_cache
 
     @property
     def title(self) -> str:
+        if self._title_cache is not None:
+            return self._title_cache
         for event in self.events:
             if event.kind == "meta" and event.meta_type in (0x03, 0x01) and event.text.strip():
-                return event.text.strip()
-        return self.path.name
+                self._title_cache = event.text.strip()
+                return self._title_cache
+        self._title_cache = self.path.name
+        return self._title_cache
 
     def tick_to_microseconds(self, tick: int) -> int:
         if tick <= 0:

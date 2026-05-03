@@ -306,6 +306,8 @@ cada proyecto, sin borrar ni sustituir el C++ original.
   - `app.py`: ventana PyQt6 inicial con lista, controles, posicion, teclado y
     selector de destino MIDI ALSA.
   - `i18n.py`: carga de traducciones Qt `.qm` con ingles como idioma fuente.
+  - `settings.py`: configuracion persistente en AppData mediante
+    `QStandardPaths.AppDataLocation` y `QSettings`.
   - `sequence.py`: modelo que carga SMF desde `drumstick_py`.
   - `player.py`: reproductor temporizado con `QTimer` y reloj real basado en
     mapa de tempo.
@@ -319,6 +321,8 @@ cada proyecto, sin borrar ni sustituir el C++ original.
 - `tests/test_sequence_player.py`: prueba minima para validar seek por ticks en
   `SequencePlayer`.
 - `tests/test_i18n.py`: prueba minima para validar fallback de idioma.
+- `tests/test_settings.py`: prueba minima para validar persistencia de la
+  ultima carpeta visitada.
 
 Estado funcional:
 
@@ -342,6 +346,8 @@ Estado funcional:
   - limita valores al rango MIDI 0-127.
 - La UI usa cadenas fuente en ingles y puede cargar traducciones Qt Linguist
   compiladas desde `dmidiplayer/dmidiplayer_py/translations`.
+- La aplicacion guarda configuracion en AppData y recuerda la ultima carpeta
+  visitada por el dialogo `Open MIDI`.
 - La app intenta abrir ALSA sequencer primero.
 - Si ALSA sequencer falla, la app cae a salida dummy y sigue abriendo la UI.
 - `python3-alsaaudio` se usa solo como diagnostico de tarjetas/PCM. No sirve
@@ -389,7 +395,7 @@ Desde la raiz del repo:
 ```bash
 ./dmidiplayer/dmidiplayer-py --help
 PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py
-PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n tests.test_settings
 QT_QPA_PLATFORM=offscreen timeout 2s ./dmidiplayer/dmidiplayer-py
 ```
 
@@ -828,12 +834,14 @@ Tareas:
 - `dmidiplayer/dmidiplayer_py/i18n.py`
 - `dmidiplayer/dmidiplayer_py/player.py`
 - `dmidiplayer/dmidiplayer_py/sequence.py`
+- `dmidiplayer/dmidiplayer_py/settings.py`
 - `dmidiplayer/dmidiplayer_py/translations/dmidiplayer_py_es.ts`
 - `dmidiplayer/dmidiplayer-py`
 - `tests/test_smf_parser.py`
 - `tests/test_alsa_event.py`
 - `tests/test_sequence_player.py`
 - `tests/test_i18n.py`
+- `tests/test_settings.py`
 
 ## Detalle tecnico del estado actual
 
@@ -857,6 +865,8 @@ Tareas:
 - Expone metadatos basicos con `TimeSignature`, `KeySignature` y `TextEvent`.
 - Calcula `length_microseconds`, `tick_to_microseconds()` y
   `microseconds_to_tick()`.
+- Cachea eventos ordenados, duracion, tempo y metadatos calculados para evitar
+  reordenar/recalcular repetidamente al abrir archivos MIDI mas grandes.
 - Aun falta ampliar pruebas de borde y comparar duraciones/metadatos contra C++.
 
 `drumstick_py.rt`:
@@ -897,12 +907,22 @@ Tareas:
 - Si falla, muestra mensaje en status bar y usa dummy.
 - Usa ingles como idioma fuente de la UI.
 - Puede cargar traducciones con `--language CODIGO` o `--language system`.
+- Crea `AppSettings` para recordar la ultima carpeta abierta.
 - Tiene toolbar minima: abrir, reproducir, pausa, detener.
 - Tiene controles iniciales de tono, tempo y volumen con reset.
 - Tiene selector de destinos MIDI ALSA con refrescar/conectar.
 - Tiene lista de archivos, etiqueta de informacion, slider de posicion,
   teclado y etiqueta del ultimo evento.
 - El slider de posicion llama a `SequencePlayer.seek()` al soltarlo.
+
+`dmidiplayer_py.settings`:
+
+- Usa `QStandardPaths.AppDataLocation` para ubicar AppData de forma portable.
+- Guarda `settings.ini` con `QSettings`.
+- Si AppData no se puede crear/escribir, cae a un directorio temporal para no
+  impedir que la aplicacion arranque en entornos restringidos.
+- Persiste `files/last_folder`.
+- Si la ruta guardada ya no existe, vuelve a una carpeta fallback.
 
 ## Notas tecnicas
 

@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
 from drumstick_py import BackendManager, MidiFileError, MidiOutputError, PianoKeyboard
 from .i18n import install_translator
 from .player import SequencePlayer
+from .settings import AppSettings
 
 
 class MainWindow(QMainWindow):
@@ -33,6 +34,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(self.tr("dmidiplayer PyQt6"))
         self.resize(900, 520)
+        self.settings = AppSettings()
         self.manager = BackendManager(self)
         self.output = self._create_midi_output()
         self.player = SequencePlayer(self.output, self)
@@ -221,9 +223,11 @@ class MainWindow(QMainWindow):
         files, _ = QFileDialog.getOpenFileNames(
             self,
             self.tr("Open MIDI"),
-            str(Path.home()),
+            str(self.settings.last_folder(Path.home())),
             self.tr("MIDI (*.mid *.midi *.kar);;All files (*)"),
         )
+        if files:
+            self.settings.set_last_folder(Path(files[0]).parent)
         for file_name in files:
             self.add_file(file_name)
         if files:
@@ -305,6 +309,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     app = QApplication(sys.argv[:1] + args.files)
+    app.setOrganizationName("dmidiplayer")
+    app.setOrganizationDomain("dmidiplayer.local")
     app.setApplicationName("dmidiplayer-py")
     install_translator(app, args.language)
     window = MainWindow(args.files)
