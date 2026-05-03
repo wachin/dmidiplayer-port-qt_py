@@ -337,6 +337,10 @@ Estado funcional:
 - El slider de posicion permite seek basico por tick; al moverlo se detienen
   notas activas y se continua desde la nueva posicion si la reproduccion estaba
   activa.
+- La lista funciona como playlist temporal:
+  - se pueden cargar varios archivos por linea de comandos o dialogo;
+  - `Previous` y `Next` navegan la lista;
+  - al terminar una cancion, avanza automaticamente al siguiente elemento.
 - Hay controles iniciales de tono y tempo en la toolbar:
   - transpose entre -12 y +12 semitonos;
   - el canal de percusion GM 10 no se transpone;
@@ -401,7 +405,7 @@ Desde la raiz del repo:
 ```bash
 ./dmidiplayer/dmidiplayer-py --help
 PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py
-PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n tests.test_settings
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n tests.test_settings tests.test_app_playlist
 QT_QPA_PLATFORM=offscreen timeout 2s ./dmidiplayer/dmidiplayer-py
 ```
 
@@ -441,6 +445,8 @@ hardware MIDI, QSynth u otro sintetizador ALSA.
   `guiplayer.ui`.
 - No se han portado todavia canales, playlist completa, loop, letras, pianola
   completa, preferencias ni ayuda.
+- La playlist temporal ya navega y auto-avanza, pero aun falta dialogo completo
+  de playlist, guardar/abrir `.lst`, repeticion y aleatorio.
 - RIFF MIDI y Cakewalk WRK aun no estan portados.
 - `uchardet` aun no esta conectado al parser Python.
 - Hay una prueba automatizada minima para SMF; falta ampliar cobertura.
@@ -801,7 +807,7 @@ Comandos esperados:
 ```bash
 PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py
 PYTHONPATH=drumstick:dmidiplayer python3 -m dmidiplayer_py --help
-PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n tests.test_settings tests.test_app_playlist
 ```
 
 ## Fase 10: empaquetado local
@@ -848,6 +854,7 @@ Tareas:
 - `tests/test_sequence_player.py`
 - `tests/test_i18n.py`
 - `tests/test_settings.py`
+- `tests/test_app_playlist.py`
 
 ## Detalle tecnico del estado actual
 
@@ -915,7 +922,7 @@ Tareas:
 - Usa ingles como idioma fuente de la UI.
 - Puede cargar traducciones con `--language CODIGO` o `--language system`.
 - Crea `AppSettings` para recordar la ultima carpeta abierta.
-- Tiene toolbar minima: abrir, reproducir, pausa, detener.
+- Tiene toolbar minima: abrir, reproducir, pausa, detener, anterior y siguiente.
 - Tiene controles iniciales de tono, tempo y volumen con reset.
 - Tiene controles iniciales de loop por ticks.
 - Tiene selector de destinos MIDI ALSA con refrescar/conectar.
@@ -924,6 +931,9 @@ Tareas:
 - Tiene lista de archivos, etiqueta de informacion, slider de posicion,
   teclado y etiqueta del ultimo evento.
 - El slider de posicion llama a `SequencePlayer.seek()` al soltarlo.
+- La lista lateral funciona como playlist temporal y se sincroniza con el
+  archivo cargado.
+- Al terminar una cancion, intenta cargar y reproducir el siguiente elemento.
 
 `dmidiplayer_py.settings`:
 

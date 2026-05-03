@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
         self.player.eventPlayed.connect(self._event_played)
         self.player.outputError.connect(self._output_error)
         self.player.finished.connect(self._finished)
+        self.auto_advance_playlist = True
 
         self.playlist = QListWidget()
         self.playlist.itemDoubleClicked.connect(lambda item: self.load_file(item.text()))
@@ -81,9 +82,11 @@ class MainWindow(QMainWindow):
         toolbar.addAction(open_action)
         toolbar.addSeparator()
         for text, slot in (
+            (self.tr("Previous"), self.previous_file),
             (self.tr("Play"), self.player.play),
             (self.tr("Pause"), self.player.pause),
             (self.tr("Stop"), self.player.stop),
+            (self.tr("Next"), self.next_file),
         ):
             button = QPushButton(text)
             button.clicked.connect(slot)
@@ -276,7 +279,36 @@ class MainWindow(QMainWindow):
         self.event_label.setText(self.tr("File loaded"))
         self.position.setEnabled(midi.length_ticks > 0)
         self._reset_loop_controls(midi.length_ticks)
+        self._select_playlist_file(file_name)
         self.keyboard.clear()
+
+    def previous_file(self) -> None:
+        row = self.playlist.currentRow()
+        if row < 0:
+            row = 0
+        self._load_playlist_row(max(0, row - 1))
+
+    def next_file(self) -> None:
+        row = self.playlist.currentRow()
+        if row < 0:
+            row = 0
+        self._load_playlist_row(min(self.playlist.count() - 1, row + 1))
+
+    def _load_playlist_row(self, row: int, autoplay: bool = False) -> bool:
+        if row < 0 or row >= self.playlist.count():
+            return False
+        item = self.playlist.item(row)
+        self.playlist.setCurrentRow(row)
+        self.load_file(item.text())
+        if autoplay:
+            self.player.play()
+        return True
+
+    def _select_playlist_file(self, file_name: str) -> None:
+        for row in range(self.playlist.count()):
+            if self.playlist.item(row).text() == file_name:
+                self.playlist.setCurrentRow(row)
+                return
 
     def _update_position(self, tick: int, maximum: int) -> None:
         self._updating_position = True
@@ -328,6 +360,8 @@ class MainWindow(QMainWindow):
             self.keyboard.note_off(data[0])
 
     def _finished(self) -> None:
+        if self.auto_advance_playlist and self._load_playlist_row(self.playlist.currentRow() + 1, autoplay=True):
+            return
         self.event_label.setText(self.tr("End of sequence"))
         self.keyboard.clear()
 

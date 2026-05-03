@@ -120,6 +120,13 @@ Para probar, usar uno de los `.mid` de `dmidiplayer/examples`, por ejemplo:
 ./dmidiplayer/dmidiplayer-py dmidiplayer/examples/test.mid
 ```
 
+Tambien se pueden pasar varios archivos. La lista queda como una playlist
+temporal y los botones `Previous` / `Next` permiten navegarla:
+
+```bash
+./dmidiplayer/dmidiplayer-py dmidiplayer/examples/test.mid dmidiplayer/examples/haendel_hallelujah.mid
+```
+
 y aparecerá la ventana y sonando el programa:
 
 ![](vx_images/01-dmidiplayer_port-qt_py.png)
@@ -173,5 +180,5 @@ vez el selector de archivos abra directamente en esa ubicacion.
 ```bash
 ./dmidiplayer/dmidiplayer-py --help
 PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py tests
-PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n tests.test_settings
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n tests.test_settings tests.test_app_playlist
 ```
