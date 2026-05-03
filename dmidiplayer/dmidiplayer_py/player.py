@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from bisect import bisect_left
+
 from PyQt6.QtCore import QElapsedTimer, QObject, Qt, QTimer, pyqtSignal
 
 from drumstick_py import MidiEvent, MidiOutputError
@@ -29,6 +31,7 @@ class SequencePlayer(QObject):
         self._position = 0
         self._position_us = 0
         self._base_position_us = 0
+        self._playing = False
         self._clock = QElapsedTimer()
 
     def load_file(self, file_name: str) -> None:
@@ -53,23 +56,46 @@ class SequencePlayer(QObject):
         self._base_position_us = self._position_us
         self._clock.start()
         self._timer.start(2)
+        self._playing = True
         self.started.emit()
         self._tick()
 
     def pause(self) -> None:
         self._position_us = self._elapsed_microseconds()
         self._timer.stop()
+        self._playing = False
         self.stopped.emit()
 
     def stop(self) -> None:
         self._timer.stop()
         self.output.all_notes_off()
+        self._playing = False
         self._index = 0
         self._position = 0
         self._position_us = 0
         self._base_position_us = 0
         self.positionChanged.emit(self._position, self.sequence.length_ticks)
         self.stopped.emit()
+
+    def seek(self, tick: int) -> None:
+        if not self._events:
+            return
+        was_playing = self._playing
+        self._timer.stop()
+        self.output.all_notes_off()
+
+        self._position = max(0, min(tick, self.sequence.length_ticks))
+        self._position_us = self.sequence.tick_to_microseconds(self._position)
+        self._base_position_us = self._position_us
+        self._index = bisect_left(self._event_times_us, self._position_us)
+        self.positionChanged.emit(self._position, self.sequence.length_ticks)
+
+        if was_playing and self._index < len(self._events):
+            self._clock.start()
+            self._timer.start(2)
+            self._playing = True
+        else:
+            self._playing = False
 
     def _tick(self) -> None:
         self._position_us = self._elapsed_microseconds()
@@ -80,6 +106,7 @@ class SequencePlayer(QObject):
             except MidiOutputError as exc:
                 self._timer.stop()
                 self.output.all_notes_off()
+                self._playing = False
                 self.outputError.emit(str(exc))
                 self.stopped.emit()
                 return
@@ -93,6 +120,7 @@ class SequencePlayer(QObject):
         self.positionChanged.emit(self._position, self.sequence.length_ticks)
         if self._index >= len(self._events):
             self._timer.stop()
+            self._playing = False
             self._position = self.sequence.length_ticks
             self._position_us = self.sequence.length_microseconds
             self._base_position_us = self._position_us

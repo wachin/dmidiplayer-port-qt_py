@@ -44,11 +44,14 @@ class MainWindow(QMainWindow):
         self.title_label = QLabel("No hay archivo cargado")
         self.title_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.position = QSlider(Qt.Orientation.Horizontal)
+        self.position.setTracking(False)
         self.position.setEnabled(False)
+        self.position.sliderReleased.connect(self._seek_to_slider)
         self.keyboard = PianoKeyboard()
         self.event_label = QLabel(f"Salida MIDI: {self.output.name}")
         self.connection_combo = QComboBox()
         self.connection_combo.setMinimumWidth(260)
+        self._updating_position = False
 
         self._build_toolbar()
         self._build_layout()
@@ -192,11 +195,20 @@ class MainWindow(QMainWindow):
             f"{midi.length_ticks} ticks, {duration:.1f} s"
         )
         self.event_label.setText("Archivo cargado")
+        self.position.setEnabled(midi.length_ticks > 0)
         self.keyboard.clear()
 
     def _update_position(self, tick: int, maximum: int) -> None:
+        self._updating_position = True
         self.position.setMaximum(maximum)
         self.position.setValue(min(tick, maximum))
+        self._updating_position = False
+
+    def _seek_to_slider(self) -> None:
+        if self._updating_position:
+            return
+        self.player.seek(self.position.value())
+        self.keyboard.clear()
 
     def _event_played(self, event: object) -> None:
         kind = getattr(event, "kind", "event")

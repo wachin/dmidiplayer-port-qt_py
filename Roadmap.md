@@ -47,6 +47,8 @@ cada proyecto, sin borrar ni sustituir el C++ original.
   valida note on/off, tempo y final de pista.
 - `tests/test_alsa_event.py`: prueba minima para validar el armado de eventos
   SysEx ALSA con longitud variable.
+- `tests/test_sequence_player.py`: prueba minima para validar seek por ticks en
+  `SequencePlayer`.
 
 Estado funcional:
 
@@ -57,6 +59,9 @@ Estado funcional:
 - El parser calcula mapa de tempo, compas, armadura, textos y duracion real.
 - El reproductor temporizado emite eventos a la salida configurada usando los
   tiempos reales derivados del mapa de tempo.
+- El slider de posicion permite seek basico por tick; al moverlo se detienen
+  notas activas y se continua desde la nueva posicion si la reproduccion estaba
+  activa.
 - La app intenta abrir ALSA sequencer primero.
 - Si ALSA sequencer falla, la app cae a salida dummy y sigue abriendo la UI.
 - `python3-alsaaudio` se usa solo como diagnostico de tarjetas/PCM. No sirve
@@ -131,11 +136,11 @@ hardware MIDI, QSynth u otro sintetizador ALSA.
 
 - El parser SMF inicial ya calcula tempo y duracion real para SMF PPQ, pero aun
   necesita mas pruebas de borde y comparacion contra Drumstick C++.
-- El scheduler de `dmidiplayer_py.player` ya usa tiempos reales, pero sigue
-  dependiendo de `QTimer`; aun no implementa seek, loop ni compensacion avanzada
-  de latencia.
-- La salida ALSA envia eventos directos a suscriptores, pero todavia no lista ni
-  conecta destinos por nombre desde la UI.
+- El scheduler de `dmidiplayer_py.player` ya usa tiempos reales y seek basico,
+  pero sigue dependiendo de `QTimer`; aun no implementa loop ni compensacion
+  avanzada de latencia.
+- La salida ALSA ya lista/conecta destinos desde la UI; falta mostrar
+  conexiones activas y desconectar/reconectar destinos.
 - La UI PyQt6 actual es una ventana minima, no una conversion completa de
   `guiplayer.ui`.
 - No se han portado todavia canales, playlist completa, loop, letras, pianola
@@ -159,11 +164,11 @@ Prioridad recomendada para continuar:
    - conectar por busqueda de nombre mas flexible desde preferencias;
    - exponer errores ALSA sin escribir demasiado en stderr;
    - verificar tamano/layout de `snd_seq_event_t` con una prueba pequena.
-3. Agregar seek basico en `SequencePlayer` y conectar el slider de posicion.
-4. Empezar la conversion de UI real:
+3. Empezar la conversion de UI real:
    - decidir si se usara `pyuic6` o `PyQt6.uic.loadUi`;
    - cargar `guiplayer.ui`;
    - conectar acciones basicas contra el `SequencePlayer` Python.
+4. Agregar loop basico por ticks/compases.
 
 No repetir:
 
@@ -511,13 +516,12 @@ Tareas:
 
 1. Ampliar pruebas automatizadas para parser y scheduler.
 2. Completar `drumstick_py.rt` con listado/conexion de puertos ALSA.
-3. Agregar seek basico en `SequencePlayer`.
-4. Portar `settings`, `sequence` y `events` con paridad C++.
-5. Convertir/cargar `.ui` y conectar acciones reales.
-6. Portar canales, lyrics, playlist, loop, pianola y ritmo.
-7. Portar preferencias, conexiones, ayuda y traducciones.
-8. Portar utilidades Drumstick restantes.
-9. Preparar empaquetado e instalacion.
+3. Portar `settings`, `sequence` y `events` con paridad C++.
+4. Convertir/cargar `.ui` y conectar acciones reales.
+5. Portar canales, lyrics, playlist, loop, pianola y ritmo.
+6. Portar preferencias, conexiones, ayuda y traducciones.
+7. Portar utilidades Drumstick restantes.
+8. Preparar empaquetado e instalacion.
 
 ## Archivos Python creados hasta ahora
 
@@ -533,6 +537,7 @@ Tareas:
 - `dmidiplayer/dmidiplayer-py`
 - `tests/test_smf_parser.py`
 - `tests/test_alsa_event.py`
+- `tests/test_sequence_player.py`
 
 ## Detalle tecnico del estado actual
 
@@ -578,8 +583,9 @@ Tareas:
 - Carga `Sequence`.
 - Avanza con `QTimer` preciso cada 2 ms y `QElapsedTimer`.
 - Programa eventos segun los microsegundos calculados desde el mapa de tempo.
+- Implementa `seek(tick)` y reposiciona el indice del siguiente evento.
 - Emite `positionChanged`, `eventPlayed`, `started`, `stopped`, `finished`.
-- Aun falta seek, loop y compensacion avanzada de latencia.
+- Aun falta loop y compensacion avanzada de latencia.
 
 `dmidiplayer_py.app`:
 
@@ -587,8 +593,10 @@ Tareas:
 - Intenta `create_output("alsa")`.
 - Si falla, muestra mensaje en status bar y usa dummy.
 - Tiene toolbar minima: abrir, reproducir, pausa, detener.
+- Tiene selector de destinos MIDI ALSA con refrescar/conectar.
 - Tiene lista de archivos, etiqueta de informacion, slider de posicion,
   teclado y etiqueta del ultimo evento.
+- El slider de posicion llama a `SequencePlayer.seek()` al soltarlo.
 
 ## Notas tecnicas
 
