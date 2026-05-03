@@ -305,6 +305,7 @@ cada proyecto, sin borrar ni sustituir el C++ original.
 - `dmidiplayer/dmidiplayer_py/`
   - `app.py`: ventana PyQt6 inicial con lista, controles, posicion, teclado y
     selector de destino MIDI ALSA.
+  - `i18n.py`: carga de traducciones Qt `.qm` con ingles como idioma fuente.
   - `sequence.py`: modelo que carga SMF desde `drumstick_py`.
   - `player.py`: reproductor temporizado con `QTimer` y reloj real basado en
     mapa de tempo.
@@ -317,6 +318,7 @@ cada proyecto, sin borrar ni sustituir el C++ original.
   SysEx ALSA con longitud variable.
 - `tests/test_sequence_player.py`: prueba minima para validar seek por ticks en
   `SequencePlayer`.
+- `tests/test_i18n.py`: prueba minima para validar fallback de idioma.
 
 Estado funcional:
 
@@ -334,6 +336,8 @@ Estado funcional:
   - transpose entre -12 y +12 semitonos;
   - el canal de percusion GM 10 no se transpone;
   - tempo entre 50% y 200%, aplicado al reloj musical del scheduler.
+- La UI usa cadenas fuente en ingles y puede cargar traducciones Qt Linguist
+  compiladas desde `dmidiplayer/dmidiplayer_py/translations`.
 - La app intenta abrir ALSA sequencer primero.
 - Si ALSA sequencer falla, la app cae a salida dummy y sigue abriendo la UI.
 - `python3-alsaaudio` se usa solo como diagnostico de tarjetas/PCM. No sirve
@@ -381,7 +385,7 @@ Desde la raiz del repo:
 ```bash
 ./dmidiplayer/dmidiplayer-py --help
 PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py
-PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n
 QT_QPA_PLATFORM=offscreen timeout 2s ./dmidiplayer/dmidiplayer-py
 ```
 
@@ -423,6 +427,8 @@ hardware MIDI, QSynth u otro sintetizador ALSA.
 - RIFF MIDI y Cakewalk WRK aun no estan portados.
 - `uchardet` aun no esta conectado al parser Python.
 - Hay una prueba automatizada minima para SMF; falta ampliar cobertura.
+- La traduccion espanola inicial existe como `.ts`, pero todavia no esta
+  traducida ni compilada a `.qm`.
 
 ## Siguiente sesion: tareas concretas
 
@@ -445,6 +451,7 @@ Prioridad recomendada para continuar:
    - conectar acciones basicas contra el `SequencePlayer` Python.
 4. Agregar volumen global inicial con MIDI CC7 y boton de reset.
 5. Agregar loop basico por ticks/compases.
+6. Traducir `dmidiplayer_py_es.ts` en Qt Linguist y compilar `.qm`.
 
 No repetir:
 
@@ -502,6 +509,9 @@ Dependencias recomendadas para fases posteriores:
   FluidSynth; si no, usar `ctypes` sobre `libfluidsynth`.
 - `python3-pytest` para pruebas unitarias.
 - `python3-pytestqt`, si se desea automatizar widgets PyQt6.
+- `pyqt6-dev-tools`, para `pylupdate6`.
+- `qt6-tools-dev-tools`, `qttools5-dev-tools` y `qtchooser`, para Qt Linguist,
+  `lupdate` y `lrelease` segun el entorno.
 
 No introducir paquetes de `pip` salvo que sea inevitable. La prioridad es usar
 paquetes de Debian 12.
@@ -809,12 +819,15 @@ Tareas:
 - `dmidiplayer/dmidiplayer_py/__init__.py`
 - `dmidiplayer/dmidiplayer_py/__main__.py`
 - `dmidiplayer/dmidiplayer_py/app.py`
+- `dmidiplayer/dmidiplayer_py/i18n.py`
 - `dmidiplayer/dmidiplayer_py/player.py`
 - `dmidiplayer/dmidiplayer_py/sequence.py`
+- `dmidiplayer/dmidiplayer_py/translations/dmidiplayer_py_es.ts`
 - `dmidiplayer/dmidiplayer-py`
 - `tests/test_smf_parser.py`
 - `tests/test_alsa_event.py`
 - `tests/test_sequence_player.py`
+- `tests/test_i18n.py`
 
 ## Detalle tecnico del estado actual
 
@@ -873,6 +886,8 @@ Tareas:
 - Crea `BackendManager`.
 - Intenta `create_output("alsa")`.
 - Si falla, muestra mensaje en status bar y usa dummy.
+- Usa ingles como idioma fuente de la UI.
+- Puede cargar traducciones con `--language CODIGO` o `--language system`.
 - Tiene toolbar minima: abrir, reproducir, pausa, detener.
 - Tiene controles iniciales de tono y tempo con reset.
 - Tiene selector de destinos MIDI ALSA con refrescar/conectar.

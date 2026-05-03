@@ -46,7 +46,7 @@ sudo apt install qjackctl qsynth fluidsynth fluid-soundfont-gm
 Paquetes usados o previstos durante la migracion:
 
 ```bash
-sudo apt install uchardet pandoc
+sudo apt install uchardet pandoc pyqt6-dev-tools qt6-tools-dev-tools qttools5-dev-tools qtchooser
 ```
 
 Para ejecutar las pruebas actuales no hace falta `pytest`; se usa `unittest`,
@@ -66,6 +66,49 @@ Notas:
   modulo `snd-seq`.
 - `fluid-soundfont-gm` instala `FluidR3.sf2`, que se puede cargar en QSynth
   desde `Soundfonts`.
+- `pyqt6-dev-tools` aporta `pylupdate6` para extraer cadenas traducibles desde
+  el codigo Python.
+- `qt6-tools-dev-tools` / `qttools5-dev-tools` y `qtchooser` aportan Qt
+  Linguist y `lrelease`/`lupdate`, segun la configuracion de Qt disponible en
+  el sistema.
+
+## Internacionalizacion
+
+El idioma fuente de la interfaz es ingles. La aplicacion carga traducciones Qt
+compiladas (`.qm`) desde:
+
+```text
+dmidiplayer/dmidiplayer_py/translations/
+```
+
+Por defecto se usa ingles:
+
+```bash
+./dmidiplayer/dmidiplayer-py dmidiplayer/examples/test.mid
+```
+
+Para pedir otro idioma:
+
+```bash
+./dmidiplayer/dmidiplayer-py --language es dmidiplayer/examples/test.mid
+./dmidiplayer/dmidiplayer-py --language system dmidiplayer/examples/test.mid
+```
+
+Si el archivo `.qm` del idioma pedido no existe, la aplicacion vuelve a ingles.
+
+Flujo para traducir con Qt Linguist:
+
+```bash
+pylupdate6 dmidiplayer/dmidiplayer_py --ts dmidiplayer/dmidiplayer_py/translations/dmidiplayer_py_es.ts
+linguist dmidiplayer/dmidiplayer_py/translations/dmidiplayer_py_es.ts
+lrelease dmidiplayer/dmidiplayer_py/translations/dmidiplayer_py_es.ts -qm dmidiplayer/dmidiplayer_py/translations/dmidiplayer_py_es.qm
+```
+
+Despues de guardar y compilar el `.qm`, ejecutar:
+
+```bash
+./dmidiplayer/dmidiplayer-py --language es dmidiplayer/examples/test.mid
+```
 
 ## Como probar
 
@@ -108,5 +151,5 @@ original.
 ```bash
 ./dmidiplayer/dmidiplayer-py --help
 PYTHONPATH=drumstick:dmidiplayer python3 -m compileall drumstick/drumstick_py dmidiplayer/dmidiplayer_py tests
-PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player
+PYTHONPATH=drumstick:dmidiplayer python3 -m unittest tests.test_smf_parser tests.test_alsa_event tests.test_sequence_player tests.test_i18n
 ```
