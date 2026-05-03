@@ -22,6 +22,274 @@ La conversion debe hacerse por capas. Primero se porta `drumstick_py`, luego se
 conecta `dmidiplayer_py` contra esa API Python. El C++ original se conserva
 como referencia hasta que cada modulo tenga paridad funcional y pruebas.
 
+## Objetivo final de paridad funcional
+
+La meta de este port es que `dmidiplayer_py`, usando `drumstick_py`, llegue a
+ser un reproductor MIDI completo y agradable para uso real: abrir canciones,
+sonar bien con hardware MIDI o sintetizadores software, mostrar informacion
+musical util, ayudar a cantantes/instrumentistas a ensayar, y mantener una UI
+practica para repertorios y karaoke.
+
+Esta seccion resume las caracteristicas finales esperadas a partir de la
+documentacion de dmidiplayer/Drumstick y sirve como lista de destino para toda
+la migracion.
+
+### Formatos y lectura de archivos
+
+- Abrir `.mid`, `.midi` y `.kar` como Standard MIDI Files.
+- Abrir `.wrk` de Cakewalk.
+- Portar RIFF MIDI.
+- Conservar eventos MIDI de canal, eventos meta, letras, textos, marcadores,
+  cue points, cambios de tempo, compas, armadura y SysEx.
+- Detectar o permitir elegir la codificacion de textos/letras.
+- Reportar errores de archivo sin cerrar la aplicacion.
+- Mantener metadatos suficientes para vistas de letras, canales, pianola,
+  duracion, compases y busqueda de posicion.
+
+### Salida MIDI y sintetizadores
+
+- Enviar MIDI a puertos hardware.
+- Enviar MIDI a sintetizadores software mediante backends Drumstick:
+  - ALSA sequencer en Linux;
+  - FluidSynth;
+  - otros backends disponibles o razonables en la version Python.
+- Listar destinos MIDI y conectar/desconectar desde la UI.
+- Soportar salida dummy para pruebas automatizadas.
+- Enviar reset SysEx GM/GS/XG antes de reproducir cuando este configurado.
+- Ejecutar `all_notes_off` al detener, pausar, cambiar archivo, cerrar, buscar
+  posicion o cambiar loop.
+- Evitar que fallos de salida MIDI aborten el proceso; deben mostrarse al
+  usuario como errores recuperables.
+
+### Controles de reproduccion
+
+- Reproducir, pausar/continuar y detener.
+- Avanzar rapido y retroceder por compas.
+- Saltar a un numero de compas concreto.
+- Mover la posicion con un slider.
+- Reproducir automaticamente al cargar archivo, si la preferencia esta activa.
+- Mostrar estado actual en la barra de estado: reproduciendo, detenido, pausa,
+  cargando, error, etc.
+- Avanzar automaticamente al siguiente elemento de playlist al terminar, si la
+  preferencia esta activa.
+
+### Tempo, transpose y volumen
+
+- Transponer la tonalidad de la cancion entre -12 y +12 semitonos.
+- No transponer el canal de percusion configurado, por defecto canal GM 10.
+- Controlar volumen global de 0% a 200%, enviando MIDI CC7 y respetando el
+  limite 0-127 del protocolo.
+- Restablecer volumen global.
+- Escalar tempo entre 50% y 200%.
+- Restablecer tempo.
+- Mostrar tempo efectivo en BPM, empezando en 120 BPM si el archivo no define
+  tempo.
+- Actualizar el BPM visible mientras se reproduce un archivo con cambios de
+  tempo.
+- Aplicar pitch/tempo/volumen al scheduler y a los eventos enviados, no solo a
+  la UI.
+
+### Jump, loop y posicionamiento musical
+
+- Calcular compases a partir del mapa de tempo y compas.
+- Saltar a compas por numero, desde 1 hasta el ultimo compas de la cancion.
+- Definir loop entre dos compases.
+- Activar/desactivar loop durante la reproduccion.
+- Mantener el slider de posicion sincronizado con ticks, tiempo real y compas.
+- Permitir seek arbitrario sin dejar notas colgadas.
+
+### Song settings por cancion
+
+- Guardar y cargar ajustes por cancion en `$HOME/.dmidiplayer`.
+- Usar el mismo nombre de la cancion y sufijo `.cfg`.
+- Permitir carga/guardado automatico segun preferencia.
+- Permitir carga/guardado manual desde menu.
+- Guardar:
+  - codificacion de texto/letras;
+  - ruta del archivo MIDI;
+  - transpose;
+  - variacion de tempo;
+  - variacion de volumen global.
+- Guardar por canal:
+  - variacion de volumen;
+  - etiqueta editable;
+  - patch/programa MIDI;
+  - estado de solo;
+  - estado de mute;
+  - estado de lock.
+
+### Vista de canales
+
+- Mostrar hasta 16 filas, una por canal MIDI usado.
+- Mostrar numero de canal y etiqueta editable.
+- Mute por canal.
+- Solo por canal, reduciendo volumen de los demas segun preferencia.
+- Indicador de actividad/nivel por canal.
+- Slider de volumen por canal.
+- Lock de patch para impedir cambios de programa enviados por el archivo.
+- Selector de patch/programa usando nombres General MIDI.
+- Sincronizar cambios de canal con la reproduccion en tiempo real.
+
+### Pianola / Piano Player
+
+- Mostrar hasta 16 filas, una por canal usado.
+- Cada fila debe tener numero/etiqueta de canal y teclado.
+- Resaltar teclas segun notas MIDI reproducidas.
+- Permitir colores personalizables por canal/estado.
+- Permitir tinte por velocidad de nota.
+- Mostrar nombres de notas segun preferencia:
+  - nunca;
+  - minimo;
+  - al activar;
+  - siempre.
+- Soportar designacion de octava configurable.
+- Permitir tocar notas manualmente con teclado de computadora y mouse cuando
+  corresponda.
+- Menu de ventana:
+  - pantalla completa;
+  - mostrar todos los canales;
+  - ocultar todos los canales;
+  - ajustar rango de teclas a las octavas realmente usadas;
+  - mostrar/ocultar canales individuales.
+
+### Letras y karaoke
+
+- Mostrar textos meta del MIDI/KAR.
+- Filtrar por pista:
+  - todas las pistas;
+  - pista individual.
+- Seleccionar automaticamente la pista con mas datos de texto.
+- Filtrar por tipo de texto:
+  - lyrics;
+  - text;
+  - marker;
+  - cue point;
+  - otros tipos relevantes;
+  - todos.
+- Detectar codificacion automaticamente y permitir override manual.
+- Resaltar letras pasadas/futuras con colores configurables.
+- Copiar letras al portapapeles.
+- Guardar letras a archivo con la codificacion seleccionada.
+- Imprimir letras.
+- Cambiar fuente de letras.
+- Pantalla completa para vista de letras.
+
+### Vista de ritmo
+
+- Portar la vista Rhythm embebida en la ventana principal.
+- Permitir ocultar/mostrar la vista desde el menu View.
+- Sincronizarla con la reproduccion, tempo y compas.
+
+### Playlists y repertorio
+
+- Gestionar playlists desde `File -> Play List...`.
+- Crear, modificar, ordenar, abrir y guardar playlists.
+- Mostrar el nombre del archivo de playlist en el titulo de la ventana.
+- Navegar manualmente con Next y Prev.
+- Crear playlist temporal al abrir varios archivos por linea de comandos.
+- Crear playlist temporal al arrastrar/soltar archivos en la ventana.
+- Recordar la ultima playlist abierta o guardada.
+- No guardar automaticamente playlists salvo accion explicita.
+- Usar archivos de playlist de texto plano, un archivo por linea.
+- Soportar rutas absolutas y rutas relativas al archivo `.lst`.
+- Incluir una playlist inicial con ejemplos o permitir empezar con lista vacia.
+
+### Apertura de archivos y recientes
+
+- Abrir archivos desde menu/toolbar.
+- Abrir archivos recientes, recordando hasta diez entradas.
+- Abrir archivos pasados por linea de comandos.
+- Integrarse con gestores de archivos usando "Open With...".
+- Soportar drag and drop de archivos en la ventana principal.
+
+### Preferencias
+
+- Dialogo de preferencias con boton Restore Defaults.
+- Pestaña General:
+  - canal de percusion, por defecto 10;
+  - porcentaje de reduccion de volumen para solo, por defecto 50%;
+  - reproducir automaticamente al cargar;
+  - avanzar automaticamente en playlist;
+  - cargar/guardar song settings automaticamente;
+  - sticky window borders, si se conserva para Windows;
+  - forzar modo oscuro cuando aplique;
+  - usar tema interno de iconos;
+  - estilo Qt Widgets;
+  - reset SysEx MIDI antes de reproducir.
+- Pestaña Lyrics:
+  - fuente;
+  - color de texto futuro;
+  - color de texto pasado.
+- Pestaña Player Piano:
+  - paletas de resaltado;
+  - color unico de resaltado;
+  - tinte por velocidad;
+  - fuente de nombres de notas;
+  - modo de mostrar nombres;
+  - designacion de octava.
+- Persistir preferencias con `QSettings` o formato compatible definido para el
+  port.
+
+### Personalizacion de toolbar
+
+- Permitir mover toolbar.
+- Permitir mostrar toolbar arriba, abajo o flotante segun soporte Qt.
+- Dialogo de personalizacion con:
+  - acciones disponibles;
+  - acciones seleccionadas;
+  - agregar/quitar;
+  - mover arriba/abajo.
+- Estilos de botones:
+  - solo icono;
+  - solo texto;
+  - texto junto al icono;
+  - texto bajo el icono;
+  - seguir estilo Qt.
+
+### UI principal y vistas
+
+- Portar menu File, View, herramientas, status bar y dialogos principales.
+- Vistas independientes:
+  - Channels;
+  - Lyrics;
+  - Piano Player.
+- Vistas embebidas mostrables/ocultables:
+  - toolbar;
+  - status bar;
+  - Rhythm.
+- Mantener iconos existentes y tema interno cuando sea necesario.
+- Portar ayuda y ventana About.
+- Portar traducciones, especialmente espanol e ingles.
+
+### Documentacion, ayuda y distribucion
+
+- Documentar instalacion y uso en README.
+- Mantener instrucciones de prueba con MX Linux 23, kernel RT, QjackCtl,
+  QSynth y `FluidR3.sf2`.
+- Portar ayuda local desde markdown/html existentes.
+- Preparar empaquetado local cuando el port sea estable:
+  - scripts de entrada;
+  - `.desktop`;
+  - recursos;
+  - iconos;
+  - traducciones;
+  - posible `pyproject.toml`.
+
+### Criterio de exito del port
+
+- dmidiplayer Python reproduce archivos reales con estabilidad y sonido MIDI
+  real.
+- La experiencia principal iguala o mejora la version C++ para abrir,
+  reproducir, pausar, detener, navegar, modificar tempo/tono/volumen y usar
+  playlists.
+- Las vistas de canales, letras, pianola y ritmo estan sincronizadas con la
+  reproduccion.
+- Las preferencias y song settings sobreviven entre sesiones.
+- Las pruebas automatizadas cubren parser, scheduler, salida dummy, conversion
+  ALSA basica y flujos criticos de UI.
+- La aplicacion nunca deja notas sonando al detener, buscar, cerrar o fallar la
+  salida MIDI.
+
 ## Estado actual al cierre
 
 Ya se creo una base Python ejecutable y se mantiene dentro de las carpetas de
