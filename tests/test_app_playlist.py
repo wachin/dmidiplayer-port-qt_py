@@ -61,6 +61,21 @@ class AppPlaylistTest(unittest.TestCase):
                 window.previous_file()
                 self.assertEqual(window.playlist.currentRow(), 0)
 
+    def test_time_label_updates_from_loaded_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir, "simple.mid")
+            write_simple_midi(path)
+
+            with (
+                patch("dmidiplayer_py.app.BackendManager", FakeBackendManager),
+                patch("dmidiplayer_py.app.AppSettings", FakeSettings),
+            ):
+                window = MainWindow([str(path)])
+
+                self.assertEqual(window.time_label.text(), "00:00 / 00:00 - 120 BPM")
+                window._update_position(480, 480)
+                self.assertEqual(window.time_label.text(), "00:00 / 00:00 - 120 BPM")
+
 
 if __name__ == "__main__":
     unittest.main()

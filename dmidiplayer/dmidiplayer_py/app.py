@@ -53,12 +53,13 @@ class MainWindow(QMainWindow):
         self.position.setTracking(False)
         self.position.setEnabled(False)
         self.position.sliderReleased.connect(self._seek_to_slider)
+        self.time_label = QLabel(self.tr("00:00 / 00:00 - 120 BPM"))
         self.keyboard = PianoKeyboard()
         self.event_label = QLabel(self.tr("MIDI output: {name}").format(name=self.output.name))
         self.connection_combo = QComboBox()
         self.connection_combo.setMinimumWidth(260)
         self.pitch_control = self._spinbox(-12, 12, 0, self.player.set_pitch_shift)
-        self.tempo_control = self._spinbox(50, 200, 100, self.player.set_tempo_percent, "%")
+        self.tempo_control = self._spinbox(50, 200, 100, self._set_tempo_percent, "%")
         self.volume_control = self._spinbox(0, 200, 100, self.player.set_volume_percent, "%")
         self.loop_check = QCheckBox(self.tr("Loop"))
         self.loop_check.toggled.connect(self._toggle_loop)
@@ -101,6 +102,7 @@ class MainWindow(QMainWindow):
         right = QVBoxLayout()
         right.addWidget(self.title_label)
         right.addWidget(self.position)
+        right.addWidget(self.time_label)
         right.addWidget(self._build_playback_settings())
         right.addWidget(self._build_midi_destination_row())
         right.addWidget(self.keyboard)
@@ -280,6 +282,7 @@ class MainWindow(QMainWindow):
         self.position.setEnabled(midi.length_ticks > 0)
         self._reset_loop_controls(midi.length_ticks)
         self._select_playlist_file(file_name)
+        self._update_time_label(0, midi.length_ticks)
         self.keyboard.clear()
 
     def previous_file(self) -> None:
@@ -315,6 +318,7 @@ class MainWindow(QMainWindow):
         self.position.setMaximum(maximum)
         self.position.setValue(min(tick, maximum))
         self._updating_position = False
+        self._update_time_label(tick, maximum)
 
     def _seek_to_slider(self) -> None:
         if self._updating_position:
@@ -342,6 +346,31 @@ class MainWindow(QMainWindow):
         if self.loop_start is None or self.loop_end is None:
             return
         self.player.set_loop_range(self.loop_start.value(), self.loop_end.value())
+
+    def _set_tempo_percent(self, value: int) -> None:
+        self.player.set_tempo_percent(value)
+        self._update_time_label(self.position.value(), self.position.maximum())
+
+    def _update_time_label(self, tick: int, maximum: int) -> None:
+        midi = self.player.sequence.midi
+        if midi is None:
+            self.time_label.setText(self.tr("00:00 / 00:00 - 120 BPM"))
+            return
+        current_us = self.player.sequence.tick_to_microseconds(tick)
+        total_us = self.player.sequence.tick_to_microseconds(maximum)
+        bpm = self.player.sequence.bpm_at_tick(tick) * self.player.tempo_percent / 100
+        self.time_label.setText(
+            self.tr("{current} / {total} - {bpm:.0f} BPM").format(
+                current=self._format_time(current_us),
+                total=self._format_time(total_us),
+                bpm=bpm,
+            )
+        )
+
+    def _format_time(self, microseconds: int) -> str:
+        seconds = max(0, microseconds // 1_000_000)
+        minutes, seconds = divmod(seconds, 60)
+        return f"{minutes:02d}:{seconds:02d}"
 
     def _event_played(self, event: object) -> None:
         kind = getattr(event, "kind", "event")

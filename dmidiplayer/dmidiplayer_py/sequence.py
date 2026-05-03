@@ -44,3 +44,6 @@ class Sequence(QObject):
 
     def microseconds_to_tick(self, microseconds: int) -> int:
         return 0 if self.midi is None else self.midi.microseconds_to_tick(microseconds)
+
+    def bpm_at_tick(self, tick: int) -> float:
+        return 120.0 if self.midi is None else self.midi.bpm_at_tick(tick)

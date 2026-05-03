@@ -305,7 +305,7 @@ cada proyecto, sin borrar ni sustituir el C++ original.
 - `dmidiplayer/dmidiplayer_py/`
   - `app.py`: ventana PyQt6 inicial con lista, controles, posicion, teclado y
     selector de destino MIDI ALSA; toolbar reducida a acciones principales y
-    controles musicales movidos al panel principal.
+    controles musicales movidos al panel principal; indicador de tiempo y BPM.
   - `i18n.py`: carga de traducciones Qt `.qm` con ingles como idioma fuente.
   - `settings.py`: configuracion persistente mediante
     `QStandardPaths.AppConfigLocation` y `QSettings`.
@@ -324,6 +324,8 @@ cada proyecto, sin borrar ni sustituir el C++ original.
 - `tests/test_i18n.py`: prueba minima para validar fallback de idioma.
 - `tests/test_settings.py`: prueba minima para validar persistencia de la
   ultima carpeta visitada.
+- `tests/test_app_playlist.py`: pruebas minimas de navegacion de playlist e
+  indicador de tiempo/BPM en la UI.
 
 Estado funcional:
 
@@ -337,11 +339,13 @@ Estado funcional:
 - El slider de posicion permite seek basico por tick; al moverlo se detienen
   notas activas y se continua desde la nueva posicion si la reproduccion estaba
   activa.
+- La UI muestra tiempo actual/total y BPM efectivo; el BPM respeta cambios de
+  tempo del archivo y el porcentaje de tempo seleccionado.
 - La lista funciona como playlist temporal:
   - se pueden cargar varios archivos por linea de comandos o dialogo;
   - `Previous` y `Next` navegan la lista;
   - al terminar una cancion, avanza automaticamente al siguiente elemento.
-- Hay controles iniciales de tono y tempo en la toolbar:
+- Hay controles iniciales de tono y tempo en el panel principal:
   - transpose entre -12 y +12 semitonos;
   - el canal de percusion GM 10 no se transpone;
   - tempo entre 50% y 200%, aplicado al reloj musical del scheduler.
@@ -350,7 +354,7 @@ Estado funcional:
   - envia CC7 a los 16 canales cuando se cambia el control;
   - limita valores al rango MIDI 0-127.
 - Hay loop basico por ticks MIDI:
-  - controles `Loop`, `Start` y `End` en la toolbar;
+  - controles `Loop`, `Start` y `End` en el panel principal;
   - al llegar al final del rango, vuelve al inicio y envia `all_notes_off`;
   - aun falta loop por compases musicales.
 - La UI usa cadenas fuente en ingles y puede cargar traducciones Qt Linguist
@@ -437,8 +441,8 @@ hardware MIDI, QSynth u otro sintetizador ALSA.
   y aun no implementa loop por compases ni compensacion avanzada de latencia.
 - El transpose inicial ya afecta eventos de nota, pero aun falta integrarlo con
   song settings, canales bloqueados y UI final.
-- Aun falta volumen por canal, BPM visible y restaurar volumen original por
-  cancion/canal con song settings.
+- Aun falta volumen por canal y restaurar volumen original por cancion/canal
+  con song settings.
 - La salida ALSA ya lista/conecta destinos desde la UI; falta mostrar
   conexiones activas y desconectar/reconectar destinos.
 - La UI PyQt6 actual es una ventana minima, no una conversion completa de
@@ -473,7 +477,7 @@ Prioridad recomendada para continuar:
    - cargar `guiplayer.ui`;
    - conectar acciones basicas contra el `SequencePlayer` Python.
 4. Traducir `dmidiplayer_py_es.ts` en Qt Linguist y compilar `.qm`.
-5. Agregar BPM visible y lectura musical de compases.
+5. Agregar lectura musical de compases y mostrar posicion por compas.
 6. Convertir loop por ticks a loop por compases.
 
 No repetir:

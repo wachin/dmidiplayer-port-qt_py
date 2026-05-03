@@ -7,6 +7,7 @@ keeps the first Python version dependency-free on Debian 12.
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from dataclasses import dataclass, field
 from pathlib import Path
 import struct
@@ -229,6 +230,19 @@ class MidiFile:
             previous_tempo = change.microseconds_per_quarter
         remaining = microseconds - elapsed
         return previous_tick + (remaining * ticks_per_quarter) // previous_tempo
+
+    def tempo_at_tick(self, tick: int) -> int:
+        if self.division & 0x8000:
+            return 500_000
+        changes = self.tempo_changes
+        index = bisect_right([change.tick for change in changes], max(0, tick)) - 1
+        return changes[max(0, index)].microseconds_per_quarter
+
+    def bpm_at_tick(self, tick: int) -> float:
+        tempo = self.tempo_at_tick(tick)
+        if tempo <= 0:
+            return 120.0
+        return 60_000_000 / tempo
 
 
 class _Reader:
