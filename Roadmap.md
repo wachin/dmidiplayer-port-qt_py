@@ -304,7 +304,8 @@ cada proyecto, sin borrar ni sustituir el C++ original.
   - `widgets.py`: `PianoKeyboard` PyQt6 inicial.
 - `dmidiplayer/dmidiplayer_py/`
   - `app.py`: ventana PyQt6 inicial con lista, controles, posicion, teclado y
-    selector de destino MIDI ALSA.
+    selector de destino MIDI ALSA; toolbar reducida a acciones principales y
+    controles musicales movidos al panel principal.
   - `i18n.py`: carga de traducciones Qt `.qm` con ingles como idioma fuente.
   - `settings.py`: configuracion persistente mediante
     `QStandardPaths.AppConfigLocation` y `QSettings`.
@@ -918,6 +919,8 @@ Tareas:
 - Tiene controles iniciales de tono, tempo y volumen con reset.
 - Tiene controles iniciales de loop por ticks.
 - Tiene selector de destinos MIDI ALSA con refrescar/conectar.
+- Los controles de tono/tempo/volumen/loop/destino MIDI viven en filas
+  compactas dentro del panel principal para no saturar la toolbar.
 - Tiene lista de archivos, etiqueta de informacion, slider de posicion,
   teclado y etiqueta del ultimo evento.
 - El slider de posicion llama a `SequencePlayer.seek()` al soltarlo.
