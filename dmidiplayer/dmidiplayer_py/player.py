@@ -34,6 +34,7 @@ class SequencePlayer(QObject):
         self._playing = False
         self._tempo_percent = 100
         self._pitch_shift = 0
+        self._volume_percent = 100
         self._percussion_channel = 9
         self._clock = QElapsedTimer()
 
@@ -121,6 +122,14 @@ class SequencePlayer(QObject):
     def set_pitch_shift(self, semitones: int) -> None:
         self._pitch_shift = max(-12, min(12, semitones))
 
+    @property
+    def volume_percent(self) -> int:
+        return self._volume_percent
+
+    def set_volume_percent(self, value: int) -> None:
+        self._volume_percent = max(0, min(200, value))
+        self._send_global_volume()
+
     def _tick(self) -> None:
         self._position_us = self._elapsed_microseconds()
         while self._index < len(self._events) and self._event_times_us[self._index] <= self._position_us:
@@ -160,6 +169,7 @@ class SequencePlayer(QObject):
         return self._base_position_us + elapsed
 
     def _playable_event(self, event: MidiEvent) -> MidiEvent | None:
+        event = self._volume_event(event)
         if self._pitch_shift == 0:
             return event
         if event.channel is None or event.channel == self._percussion_channel:
@@ -176,3 +186,28 @@ class SequencePlayer(QObject):
             data=bytes([note]) + event.data[1:],
             meta_type=event.meta_type,
         )
+
+    def _volume_event(self, event: MidiEvent) -> MidiEvent:
+        if self._volume_percent == 100:
+            return event
+        if event.kind != "control_change" or len(event.data) < 2 or event.data[0] != 7:
+            return event
+        value = min(127, max(0, event.data[1] * self._volume_percent // 100))
+        return MidiEvent(
+            tick=event.tick,
+            kind=event.kind,
+            channel=event.channel,
+            data=bytes([event.data[0], value]) + event.data[2:],
+            meta_type=event.meta_type,
+        )
+
+    def _send_global_volume(self) -> None:
+        value = min(127, 100 * self._volume_percent // 100)
+        for channel in range(16):
+            try:
+                self.output.send_event(
+                    MidiEvent(tick=self._position, kind="control_change", channel=channel, data=bytes([7, value]))
+                )
+            except MidiOutputError as exc:
+                self.outputError.emit(str(exc))
+                return

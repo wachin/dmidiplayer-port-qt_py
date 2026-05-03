@@ -336,6 +336,10 @@ Estado funcional:
   - transpose entre -12 y +12 semitonos;
   - el canal de percusion GM 10 no se transpone;
   - tempo entre 50% y 200%, aplicado al reloj musical del scheduler.
+- Hay control inicial de volumen global:
+  - escala eventos MIDI CC7 entre 0% y 200%;
+  - envia CC7 a los 16 canales cuando se cambia el control;
+  - limita valores al rango MIDI 0-127.
 - La UI usa cadenas fuente en ingles y puede cargar traducciones Qt Linguist
   compiladas desde `dmidiplayer/dmidiplayer_py/translations`.
 - La app intenta abrir ALSA sequencer primero.
@@ -417,7 +421,8 @@ hardware MIDI, QSynth u otro sintetizador ALSA.
   implementa loop ni compensacion avanzada de latencia.
 - El transpose inicial ya afecta eventos de nota, pero aun falta integrarlo con
   song settings, canales bloqueados y UI final.
-- Aun falta volumen global, volumen por canal, BPM visible y reset de volumen.
+- Aun falta volumen por canal, BPM visible y restaurar volumen original por
+  cancion/canal con song settings.
 - La salida ALSA ya lista/conecta destinos desde la UI; falta mostrar
   conexiones activas y desconectar/reconectar destinos.
 - La UI PyQt6 actual es una ventana minima, no una conversion completa de
@@ -449,9 +454,9 @@ Prioridad recomendada para continuar:
    - decidir si se usara `pyuic6` o `PyQt6.uic.loadUi`;
    - cargar `guiplayer.ui`;
    - conectar acciones basicas contra el `SequencePlayer` Python.
-4. Agregar volumen global inicial con MIDI CC7 y boton de reset.
-5. Agregar loop basico por ticks/compases.
-6. Traducir `dmidiplayer_py_es.ts` en Qt Linguist y compilar `.qm`.
+4. Agregar loop basico por ticks/compases.
+5. Traducir `dmidiplayer_py_es.ts` en Qt Linguist y compilar `.qm`.
+6. Agregar BPM visible y lectura musical de compases.
 
 No repetir:
 
@@ -512,6 +517,7 @@ Dependencias recomendadas para fases posteriores:
 - `pyqt6-dev-tools`, para `pylupdate6`.
 - `qt6-tools-dev-tools`, `qttools5-dev-tools` y `qtchooser`, para Qt Linguist,
   `lupdate` y `lrelease` segun el entorno.
+- `linguist-qt6`, disponible en MX Linux para editar traducciones `.ts`.
 
 No introducir paquetes de `pip` salvo que sea inevitable. La prioridad es usar
 paquetes de Debian 12.
@@ -876,8 +882,11 @@ Tareas:
 - Implementa `seek(tick)` y reposiciona el indice del siguiente evento.
 - Implementa `set_tempo_percent()` entre 50% y 200%.
 - Implementa `set_pitch_shift()` entre -12 y +12 semitonos.
+- Implementa `set_volume_percent()` entre 0% y 200%.
 - Transpone eventos de nota excepto el canal de percusion cero-basado 9
   (canal GM 10).
+- Escala eventos `control_change` CC7 y envia CC7 global a los 16 canales al
+  cambiar volumen.
 - Emite `positionChanged`, `eventPlayed`, `started`, `stopped`, `finished`.
 - Aun falta loop y compensacion avanzada de latencia.
 
@@ -889,7 +898,7 @@ Tareas:
 - Usa ingles como idioma fuente de la UI.
 - Puede cargar traducciones con `--language CODIGO` o `--language system`.
 - Tiene toolbar minima: abrir, reproducir, pausa, detener.
-- Tiene controles iniciales de tono y tempo con reset.
+- Tiene controles iniciales de tono, tempo y volumen con reset.
 - Tiene selector de destinos MIDI ALSA con refrescar/conectar.
 - Tiene lista de archivos, etiqueta de informacion, slider de posicion,
   teclado y etiqueta del ultimo evento.

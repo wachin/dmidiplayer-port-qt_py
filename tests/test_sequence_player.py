@@ -49,9 +49,10 @@ def write_simple_midi(path: Path) -> None:
 class OutputStub:
     def __init__(self) -> None:
         self.all_notes_off_count = 0
+        self.events: list[object] = []
 
     def send_event(self, event: object) -> None:
-        pass
+        self.events.append(event)
 
     def all_notes_off(self) -> None:
         self.all_notes_off_count += 1
@@ -109,6 +110,34 @@ class SequencePlayerTest(unittest.TestCase):
 
         self.assertEqual(player.tempo_percent, 200)
         self.assertEqual(player.pitch_shift, -12)
+
+    def test_volume_control_change_is_scaled(self) -> None:
+        player = SequencePlayer(OutputStub())
+        player.set_volume_percent(150)
+
+        event = MidiEvent(tick=0, kind="control_change", channel=0, data=bytes([7, 80]))
+        scaled = player._playable_event(event)
+
+        self.assertEqual(player.volume_percent, 150)
+        self.assertEqual(scaled.data, bytes([7, 120]))
+
+    def test_volume_control_change_is_clamped_to_midi_range(self) -> None:
+        player = SequencePlayer(OutputStub())
+        player.set_volume_percent(200)
+
+        event = MidiEvent(tick=0, kind="control_change", channel=0, data=bytes([7, 100]))
+        scaled = player._playable_event(event)
+
+        self.assertEqual(scaled.data, bytes([7, 127]))
+
+    def test_set_volume_sends_cc7_to_all_channels(self) -> None:
+        output = OutputStub()
+        player = SequencePlayer(output)
+
+        player.set_volume_percent(80)
+
+        self.assertEqual(len(output.events), 16)
+        self.assertEqual(output.events[0].data, bytes([7, 80]))
 
 
 if __name__ == "__main__":

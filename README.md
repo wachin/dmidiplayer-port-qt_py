@@ -46,7 +46,7 @@ sudo apt install qjackctl qsynth fluidsynth fluid-soundfont-gm
 Paquetes usados o previstos durante la migracion:
 
 ```bash
-sudo apt install uchardet pandoc pyqt6-dev-tools qt6-tools-dev-tools qttools5-dev-tools qtchooser
+sudo apt install uchardet pandoc pyqt6-dev-tools qt6-tools-dev-tools qttools5-dev-tools qtchooser linguist-qt6
 ```
 
 Para ejecutar las pruebas actuales no hace falta `pytest`; se usa `unittest`,
@@ -71,6 +71,8 @@ Notas:
 - `qt6-tools-dev-tools` / `qttools5-dev-tools` y `qtchooser` aportan Qt
   Linguist y `lrelease`/`lupdate`, segun la configuracion de Qt disponible en
   el sistema.
+- En MX Linux tambien esta disponible `linguist-qt6`, que aporta Qt Linguist
+  para editar visualmente archivos `.ts`.
 
 ## Internacionalizacion
 
@@ -141,10 +143,12 @@ Si QSynth ya esta abierto, la app intentara conectarse automaticamente a un
 destino que parezca QSynth/FluidSynth. Si no lo hace, usa el selector `Destino
 MIDI`, pulsa `Refrescar` y luego `Conectar`.
 
-La toolbar actual incluye tambien controles iniciales de `Tono` y `Tempo`.
-`Tono` permite transponer entre -12 y +12 semitonos, sin alterar el canal de
+La toolbar actual incluye tambien controles iniciales de `Pitch`, `Tempo` y
+`Volume`.
+`Pitch` permite transponer entre -12 y +12 semitonos, sin alterar el canal de
 percusion GM 10. `Tempo` permite reproducir entre 50% y 200% de la velocidad
-original.
+original. `Volume` envia MIDI CC7 a los canales y escala cambios CC7 del
+archivo entre 0% y 200%.
 
 ## Verificacion rapida
 
