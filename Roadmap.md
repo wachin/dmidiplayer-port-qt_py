@@ -344,6 +344,10 @@ Estado funcional:
   - escala eventos MIDI CC7 entre 0% y 200%;
   - envia CC7 a los 16 canales cuando se cambia el control;
   - limita valores al rango MIDI 0-127.
+- Hay loop basico por ticks MIDI:
+  - controles `Loop`, `Start` y `End` en la toolbar;
+  - al llegar al final del rango, vuelve al inicio y envia `all_notes_off`;
+  - aun falta loop por compases musicales.
 - La UI usa cadenas fuente en ingles y puede cargar traducciones Qt Linguist
   compiladas desde `dmidiplayer/dmidiplayer_py/translations`.
 - La aplicacion guarda configuracion en `.config` en Linux y AppData/equivalente
@@ -423,9 +427,9 @@ hardware MIDI, QSynth u otro sintetizador ALSA.
 
 - El parser SMF inicial ya calcula tempo y duracion real para SMF PPQ, pero aun
   necesita mas pruebas de borde y comparacion contra Drumstick C++.
-- El scheduler de `dmidiplayer_py.player` ya usa tiempos reales y seek basico,
-  y ya aplica escala de tempo; sigue dependiendo de `QTimer` y aun no
-  implementa loop ni compensacion avanzada de latencia.
+- El scheduler de `dmidiplayer_py.player` ya usa tiempos reales, seek basico y
+  loop por ticks; tambien aplica escala de tempo. Sigue dependiendo de `QTimer`
+  y aun no implementa loop por compases ni compensacion avanzada de latencia.
 - El transpose inicial ya afecta eventos de nota, pero aun falta integrarlo con
   song settings, canales bloqueados y UI final.
 - Aun falta volumen por canal, BPM visible y restaurar volumen original por
@@ -461,9 +465,9 @@ Prioridad recomendada para continuar:
    - decidir si se usara `pyuic6` o `PyQt6.uic.loadUi`;
    - cargar `guiplayer.ui`;
    - conectar acciones basicas contra el `SequencePlayer` Python.
-4. Agregar loop basico por ticks/compases.
-5. Traducir `dmidiplayer_py_es.ts` en Qt Linguist y compilar `.qm`.
-6. Agregar BPM visible y lectura musical de compases.
+4. Traducir `dmidiplayer_py_es.ts` en Qt Linguist y compilar `.qm`.
+5. Agregar BPM visible y lectura musical de compases.
+6. Convertir loop por ticks a loop por compases.
 
 No repetir:
 
@@ -894,6 +898,7 @@ Tareas:
 - Implementa `set_tempo_percent()` entre 50% y 200%.
 - Implementa `set_pitch_shift()` entre -12 y +12 semitonos.
 - Implementa `set_volume_percent()` entre 0% y 200%.
+- Implementa `set_loop_range()` y `set_loop_enabled()` para loop por ticks.
 - Transpone eventos de nota excepto el canal de percusion cero-basado 9
   (canal GM 10).
 - Escala eventos `control_change` CC7 y envia CC7 global a los 16 canales al
@@ -911,6 +916,7 @@ Tareas:
 - Crea `AppSettings` para recordar la ultima carpeta abierta.
 - Tiene toolbar minima: abrir, reproducir, pausa, detener.
 - Tiene controles iniciales de tono, tempo y volumen con reset.
+- Tiene controles iniciales de loop por ticks.
 - Tiene selector de destinos MIDI ALSA con refrescar/conectar.
 - Tiene lista de archivos, etiqueta de informacion, slider de posicion,
   teclado y etiqueta del ultimo evento.

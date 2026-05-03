@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import os
 import struct
 import tempfile
 import unittest
 from pathlib import Path
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PyQt6.QtWidgets import QApplication
 
 from drumstick_py import MidiEvent
 from dmidiplayer_py.player import SequencePlayer
@@ -59,6 +64,10 @@ class OutputStub:
 
 
 class SequencePlayerTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+
     def test_seek_updates_position_and_next_event(self) -> None:
         output = OutputStub()
         player = SequencePlayer(output)
@@ -138,6 +147,28 @@ class SequencePlayerTest(unittest.TestCase):
 
         self.assertEqual(len(output.events), 16)
         self.assertEqual(output.events[0].data, bytes([7, 80]))
+
+    def test_loop_rewinds_to_start_tick_when_end_is_reached(self) -> None:
+        output = OutputStub()
+        player = SequencePlayer(output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir, "simple.mid")
+            write_simple_midi(path)
+            player.load_file(str(path))
+
+        player.set_loop_range(0, 240)
+        player.set_loop_enabled(True)
+        player._playing = True
+        player._position_us = 300_000
+        player._base_position_us = 300_000
+
+        player._tick()
+
+        self.assertTrue(player.loop_enabled)
+        self.assertEqual(player._position, 0)
+        self.assertEqual(player._index, 0)
+        self.assertGreaterEqual(output.all_notes_off_count, 1)
 
 
 if __name__ == "__main__":

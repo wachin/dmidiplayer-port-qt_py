@@ -36,6 +36,9 @@ class SequencePlayer(QObject):
         self._pitch_shift = 0
         self._volume_percent = 100
         self._percussion_channel = 9
+        self._loop_enabled = False
+        self._loop_start_tick = 0
+        self._loop_end_tick = 0
         self._clock = QElapsedTimer()
 
     def load_file(self, file_name: str) -> None:
@@ -48,6 +51,8 @@ class SequencePlayer(QObject):
         self._position = 0
         self._position_us = 0
         self._base_position_us = 0
+        self._loop_start_tick = 0
+        self._loop_end_tick = self.sequence.length_ticks
         self.positionChanged.emit(self._position, self.sequence.length_ticks)
 
     def play(self) -> None:
@@ -130,9 +135,28 @@ class SequencePlayer(QObject):
         self._volume_percent = max(0, min(200, value))
         self._send_global_volume()
 
+    @property
+    def loop_enabled(self) -> bool:
+        return self._loop_enabled
+
+    def set_loop_enabled(self, enabled: bool) -> None:
+        self._loop_enabled = enabled and self._loop_end_tick > self._loop_start_tick
+
+    def set_loop_range(self, start_tick: int, end_tick: int) -> None:
+        length = self.sequence.length_ticks
+        start = max(0, min(start_tick, length))
+        end = max(0, min(end_tick, length))
+        if end <= start:
+            end = length
+        self._loop_start_tick = start
+        self._loop_end_tick = end
+        self._loop_enabled = self._loop_enabled and self._loop_end_tick > self._loop_start_tick
+
     def _tick(self) -> None:
         self._position_us = self._elapsed_microseconds()
-        while self._index < len(self._events) and self._event_times_us[self._index] <= self._position_us:
+        limit_us = self._loop_end_microseconds() if self._loop_enabled else self._position_us
+        play_until_us = min(self._position_us, limit_us)
+        while self._index < len(self._events) and self._event_times_us[self._index] <= play_until_us:
             event = self._events[self._index]
             output_event = self._playable_event(event)
             try:
@@ -148,6 +172,9 @@ class SequencePlayer(QObject):
             self.eventPlayed.emit(output_event or event)
             self._position = event.tick
             self._index += 1
+        if self._loop_enabled and self._position_us >= limit_us:
+            self.seek(self._loop_start_tick)
+            return
         self._position = min(
             self.sequence.microseconds_to_tick(self._position_us),
             self.sequence.length_ticks,
@@ -211,3 +238,6 @@ class SequencePlayer(QObject):
             except MidiOutputError as exc:
                 self.outputError.emit(str(exc))
                 return
+
+    def _loop_end_microseconds(self) -> int:
+        return self.sequence.tick_to_microseconds(self._loop_end_tick)

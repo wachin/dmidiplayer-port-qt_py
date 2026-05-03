@@ -4,10 +4,11 @@ import argparse
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QSignalBlocker, Qt
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -55,6 +56,9 @@ class MainWindow(QMainWindow):
         self.event_label = QLabel(self.tr("MIDI output: {name}").format(name=self.output.name))
         self.connection_combo = QComboBox()
         self.connection_combo.setMinimumWidth(260)
+        self.loop_check: QCheckBox | None = None
+        self.loop_start: QSpinBox | None = None
+        self.loop_end: QSpinBox | None = None
         self._updating_position = False
 
         self._build_toolbar()
@@ -110,6 +114,20 @@ class MainWindow(QMainWindow):
         reset_volume = QPushButton("100%")
         reset_volume.clicked.connect(lambda: volume.setValue(100))
         toolbar.addWidget(reset_volume)
+        toolbar.addSeparator()
+        self.loop_check = QCheckBox(self.tr("Loop"))
+        self.loop_check.toggled.connect(self._toggle_loop)
+        toolbar.addWidget(self.loop_check)
+        toolbar.addWidget(QLabel(self.tr("Start:")))
+        self.loop_start = QSpinBox()
+        self.loop_start.setRange(0, 0)
+        self.loop_start.valueChanged.connect(self._update_loop_range)
+        toolbar.addWidget(self.loop_start)
+        toolbar.addWidget(QLabel(self.tr("End:")))
+        self.loop_end = QSpinBox()
+        self.loop_end.setRange(0, 0)
+        self.loop_end.valueChanged.connect(self._update_loop_range)
+        toolbar.addWidget(self.loop_end)
         toolbar.addSeparator()
         toolbar.addWidget(QLabel(self.tr("MIDI destination:")))
         toolbar.addWidget(self.connection_combo)
@@ -259,6 +277,7 @@ class MainWindow(QMainWindow):
         )
         self.event_label.setText(self.tr("File loaded"))
         self.position.setEnabled(midi.length_ticks > 0)
+        self._reset_loop_controls(midi.length_ticks)
         self.keyboard.clear()
 
     def _update_position(self, tick: int, maximum: int) -> None:
@@ -272,6 +291,27 @@ class MainWindow(QMainWindow):
             return
         self.player.seek(self.position.value())
         self.keyboard.clear()
+
+    def _reset_loop_controls(self, length_ticks: int) -> None:
+        if self.loop_check is None or self.loop_start is None or self.loop_end is None:
+            return
+        with QSignalBlocker(self.loop_check), QSignalBlocker(self.loop_start), QSignalBlocker(self.loop_end):
+            self.loop_check.setChecked(False)
+            self.loop_start.setRange(0, length_ticks)
+            self.loop_end.setRange(0, length_ticks)
+            self.loop_start.setValue(0)
+            self.loop_end.setValue(length_ticks)
+        self.player.set_loop_range(0, length_ticks)
+        self.player.set_loop_enabled(False)
+
+    def _toggle_loop(self, enabled: bool) -> None:
+        self._update_loop_range()
+        self.player.set_loop_enabled(enabled)
+
+    def _update_loop_range(self) -> None:
+        if self.loop_start is None or self.loop_end is None:
+            return
+        self.player.set_loop_range(self.loop_start.value(), self.loop_end.value())
 
     def _event_played(self, event: object) -> None:
         kind = getattr(event, "kind", "event")
