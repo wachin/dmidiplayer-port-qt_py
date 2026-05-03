@@ -32,6 +32,9 @@ class SequencePlayer(QObject):
         self._position_us = 0
         self._base_position_us = 0
         self._playing = False
+        self._tempo_percent = 100
+        self._pitch_shift = 0
+        self._percussion_channel = 9
         self._clock = QElapsedTimer()
 
     def load_file(self, file_name: str) -> None:
@@ -97,12 +100,35 @@ class SequencePlayer(QObject):
         else:
             self._playing = False
 
+    @property
+    def tempo_percent(self) -> int:
+        return self._tempo_percent
+
+    def set_tempo_percent(self, value: int) -> None:
+        value = max(50, min(200, value))
+        if value == self._tempo_percent:
+            return
+        if self._playing:
+            self._position_us = self._elapsed_microseconds()
+            self._base_position_us = self._position_us
+            self._clock.start()
+        self._tempo_percent = value
+
+    @property
+    def pitch_shift(self) -> int:
+        return self._pitch_shift
+
+    def set_pitch_shift(self, semitones: int) -> None:
+        self._pitch_shift = max(-12, min(12, semitones))
+
     def _tick(self) -> None:
         self._position_us = self._elapsed_microseconds()
         while self._index < len(self._events) and self._event_times_us[self._index] <= self._position_us:
             event = self._events[self._index]
+            output_event = self._playable_event(event)
             try:
-                self.output.send_event(event)
+                if output_event is not None:
+                    self.output.send_event(output_event)
             except MidiOutputError as exc:
                 self._timer.stop()
                 self.output.all_notes_off()
@@ -110,7 +136,7 @@ class SequencePlayer(QObject):
                 self.outputError.emit(str(exc))
                 self.stopped.emit()
                 return
-            self.eventPlayed.emit(event)
+            self.eventPlayed.emit(output_event or event)
             self._position = event.tick
             self._index += 1
         self._position = min(
@@ -130,4 +156,23 @@ class SequencePlayer(QObject):
     def _elapsed_microseconds(self) -> int:
         if not self._clock.isValid():
             return self._position_us
-        return self._base_position_us + self._clock.nsecsElapsed() // 1000
+        elapsed = (self._clock.nsecsElapsed() // 1000) * self._tempo_percent // 100
+        return self._base_position_us + elapsed
+
+    def _playable_event(self, event: MidiEvent) -> MidiEvent | None:
+        if self._pitch_shift == 0:
+            return event
+        if event.channel is None or event.channel == self._percussion_channel:
+            return event
+        if event.kind not in ("note_on", "note_off", "key_pressure") or not event.data:
+            return event
+        note = event.data[0] + self._pitch_shift
+        if note < 0 or note > 127:
+            return None
+        return MidiEvent(
+            tick=event.tick,
+            kind=event.kind,
+            channel=event.channel,
+            data=bytes([note]) + event.data[1:],
+            meta_type=event.meta_type,
+        )

@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSlider,
+    QSpinBox,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -72,6 +73,26 @@ class MainWindow(QMainWindow):
             button = QPushButton(text)
             button.clicked.connect(slot)
             toolbar.addWidget(button)
+        toolbar.addSeparator()
+        toolbar.addWidget(QLabel("Tono:"))
+        pitch = QSpinBox()
+        pitch.setRange(-12, 12)
+        pitch.setValue(0)
+        pitch.valueChanged.connect(self.player.set_pitch_shift)
+        toolbar.addWidget(pitch)
+        reset_pitch = QPushButton("0")
+        reset_pitch.clicked.connect(lambda: pitch.setValue(0))
+        toolbar.addWidget(reset_pitch)
+        toolbar.addWidget(QLabel("Tempo:"))
+        tempo = QSpinBox()
+        tempo.setRange(50, 200)
+        tempo.setValue(100)
+        tempo.setSuffix("%")
+        tempo.valueChanged.connect(self.player.set_tempo_percent)
+        toolbar.addWidget(tempo)
+        reset_tempo = QPushButton("100%")
+        reset_tempo.clicked.connect(lambda: tempo.setValue(100))
+        toolbar.addWidget(reset_tempo)
         toolbar.addSeparator()
         toolbar.addWidget(QLabel("Destino MIDI:"))
         toolbar.addWidget(self.connection_combo)

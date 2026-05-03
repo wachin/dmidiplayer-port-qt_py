@@ -330,6 +330,10 @@ Estado funcional:
 - El slider de posicion permite seek basico por tick; al moverlo se detienen
   notas activas y se continua desde la nueva posicion si la reproduccion estaba
   activa.
+- Hay controles iniciales de tono y tempo en la toolbar:
+  - transpose entre -12 y +12 semitonos;
+  - el canal de percusion GM 10 no se transpone;
+  - tempo entre 50% y 200%, aplicado al reloj musical del scheduler.
 - La app intenta abrir ALSA sequencer primero.
 - Si ALSA sequencer falla, la app cae a salida dummy y sigue abriendo la UI.
 - `python3-alsaaudio` se usa solo como diagnostico de tarjetas/PCM. No sirve
@@ -405,8 +409,11 @@ hardware MIDI, QSynth u otro sintetizador ALSA.
 - El parser SMF inicial ya calcula tempo y duracion real para SMF PPQ, pero aun
   necesita mas pruebas de borde y comparacion contra Drumstick C++.
 - El scheduler de `dmidiplayer_py.player` ya usa tiempos reales y seek basico,
-  pero sigue dependiendo de `QTimer`; aun no implementa loop ni compensacion
-  avanzada de latencia.
+  y ya aplica escala de tempo; sigue dependiendo de `QTimer` y aun no
+  implementa loop ni compensacion avanzada de latencia.
+- El transpose inicial ya afecta eventos de nota, pero aun falta integrarlo con
+  song settings, canales bloqueados y UI final.
+- Aun falta volumen global, volumen por canal, BPM visible y reset de volumen.
 - La salida ALSA ya lista/conecta destinos desde la UI; falta mostrar
   conexiones activas y desconectar/reconectar destinos.
 - La UI PyQt6 actual es una ventana minima, no una conversion completa de
@@ -436,7 +443,8 @@ Prioridad recomendada para continuar:
    - decidir si se usara `pyuic6` o `PyQt6.uic.loadUi`;
    - cargar `guiplayer.ui`;
    - conectar acciones basicas contra el `SequencePlayer` Python.
-4. Agregar loop basico por ticks/compases.
+4. Agregar volumen global inicial con MIDI CC7 y boton de reset.
+5. Agregar loop basico por ticks/compases.
 
 No repetir:
 
@@ -853,6 +861,10 @@ Tareas:
 - Avanza con `QTimer` preciso cada 2 ms y `QElapsedTimer`.
 - Programa eventos segun los microsegundos calculados desde el mapa de tempo.
 - Implementa `seek(tick)` y reposiciona el indice del siguiente evento.
+- Implementa `set_tempo_percent()` entre 50% y 200%.
+- Implementa `set_pitch_shift()` entre -12 y +12 semitonos.
+- Transpone eventos de nota excepto el canal de percusion cero-basado 9
+  (canal GM 10).
 - Emite `positionChanged`, `eventPlayed`, `started`, `stopped`, `finished`.
 - Aun falta loop y compensacion avanzada de latencia.
 
@@ -862,6 +874,7 @@ Tareas:
 - Intenta `create_output("alsa")`.
 - Si falla, muestra mensaje en status bar y usa dummy.
 - Tiene toolbar minima: abrir, reproducir, pausa, detener.
+- Tiene controles iniciales de tono y tempo con reset.
 - Tiene selector de destinos MIDI ALSA con refrescar/conectar.
 - Tiene lista de archivos, etiqueta de informacion, slider de posicion,
   teclado y etiqueta del ultimo evento.

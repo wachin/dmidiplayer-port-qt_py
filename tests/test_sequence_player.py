@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from drumstick_py import MidiEvent
 from dmidiplayer_py.player import SequencePlayer
 
 
@@ -72,6 +73,42 @@ class SequencePlayerTest(unittest.TestCase):
         self.assertEqual(player._position_us, 250_000)
         self.assertEqual(player._index, 2)
         self.assertGreaterEqual(output.all_notes_off_count, 1)
+
+    def test_pitch_shift_transposes_note_events(self) -> None:
+        player = SequencePlayer(OutputStub())
+        player.set_pitch_shift(2)
+
+        event = MidiEvent(tick=0, kind="note_on", channel=0, data=bytes([60, 100]))
+        shifted = player._playable_event(event)
+
+        self.assertIsNotNone(shifted)
+        self.assertEqual(shifted.data, bytes([62, 100]))
+
+    def test_pitch_shift_skips_percussion_channel(self) -> None:
+        player = SequencePlayer(OutputStub())
+        player.set_pitch_shift(2)
+
+        event = MidiEvent(tick=0, kind="note_on", channel=9, data=bytes([60, 100]))
+        shifted = player._playable_event(event)
+
+        self.assertIs(shifted, event)
+
+    def test_pitch_shift_drops_notes_outside_midi_range(self) -> None:
+        player = SequencePlayer(OutputStub())
+        player.set_pitch_shift(12)
+
+        event = MidiEvent(tick=0, kind="note_on", channel=0, data=bytes([120, 100]))
+
+        self.assertIsNone(player._playable_event(event))
+
+    def test_tempo_and_pitch_controls_are_clamped(self) -> None:
+        player = SequencePlayer(OutputStub())
+
+        player.set_tempo_percent(250)
+        player.set_pitch_shift(-20)
+
+        self.assertEqual(player.tempo_percent, 200)
+        self.assertEqual(player.pitch_shift, -12)
 
 
 if __name__ == "__main__":
